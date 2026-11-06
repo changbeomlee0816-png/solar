@@ -768,7 +768,10 @@
   }
   function siteCard(r, i) {
     const e = r.effect || {};
-    const img = r.location_img && r.location_img.src && i > 0 ? r.location_img : (r.photos.find((p) => /구조물|모듈/.test(p.cap)) || r.hero_img || {});
+    // 개요 카드에는 완공 후 드론 사진을 쓴다 (현장별 지정 → 보고서 4쪽 항공사진 → 공정 사진)
+    const COVER = { "우림2공장": "rep/r1-21-000.jpg" };
+    const cover = COVER[norm(r.site)] && (r.photos.find((p) => p.src === COVER[norm(r.site)]) || { src: COVER[norm(r.site)] });
+    const img = cover || (r.location_img && r.location_img.src && i > 0 ? r.location_img : (r.photos.find((p) => /구조물|모듈/.test(p.cap)) || r.hero_img || {}));
     return `<a class="card site-card" href="#case-${i + 1}">
       <div class="ph">${img.src ? `<img src="${img.src}" alt="${esc(r.site)} 현장" loading="lazy">` : ""}</div>
       <div class="bd"><div class="row"><span class="chip good">준공</span><span class="chip">${esc((r.inspection || "").slice(0, 13))} 사용전검사</span></div>
