@@ -293,6 +293,19 @@
     </svg>`;
   }
 
+  function heroPanel() {
+    const num = (v) => parseFloat(String(v || "").replace(/[^\d.]/g, "")) || 0;
+    const kwp = REP.reduce((s, r) => s + (r.kwp || 0), 0);
+    const gen = REP.reduce((s, r) => s + num(((r.effect || {}).gen || {}).value), 0);
+    const ghg = REP.reduce((s, r) => s + num(((r.effect || {}).ghg || {}).value), 0);
+    const mx = Math.max(...REP.map((r) => num(((r.effect || {}).gen || {}).value)), 1);
+    if (!REP.length) return "";
+    return `<div class="glass"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="k">2026 군산 · 준공 ${REP.length}곳 설비 용량</span><span class="live">사용전검사 합격</span></div>
+        <div class="v" style="font-size:46px"><span data-count="${kwp.toFixed(2)}" data-dec="2">${fmt(kwp, 2)}</span><small>kWp</small></div>
+        <div class="bars">${REP.map((r) => { const g = num(((r.effect || {}).gen || {}).value); return `<div class="bar"><span>${esc(norm(r.site))}</span><span class="t"><i style="width:${(g / mx * 100).toFixed(1)}%"></i></span><b>${fmt(g / 1000, 1)}MWh</b></div>`; }).join("")}</div></div>
+      <div class="glass-row"><div class="glass"><span class="k">예상 발전량 / 년</span><div class="v"><span data-count="${(gen / 1000).toFixed(0)}">${fmt(gen / 1000)}</span><small>MWh</small></div></div>
+        <div class="glass"><span class="k">온실가스 감축 / 년</span><div class="v"><span data-count="${ghg.toFixed(0)}">${fmt(ghg)}</span><small>tCO₂</small></div></div></div>`;
+  }
   function flowDiagram() {
     // 노드: 모듈 → 접속반 → 인버터 → 수배전반 → 공장 / 한전
     const N = {
@@ -440,7 +453,7 @@
     const howTo = usage ? (usage.c.blocks.find((b) => b.t === "ul") || { items: [] }).items : [];
 
     root.innerHTML = `
-    <section class="hero"><div class="wrap">
+    <section class="hero" style="--hero-img:url('${((REP[1] || REP[0] || {}).location_img || {}).src || ""}')"><div class="wrap">
       <div class="reveal">
         <div class="eyebrow">${esc(m.project || "")} · ${esc(m.org || "")}</div>
         <h1>태양광 <em>사업관리</em><br>백서</h1>
@@ -449,13 +462,13 @@
         <div class="stats">
           <div class="stat"><span class="ic">${icon("doc", 17)}</span><div class="v"><span data-count="${nCh}">${nCh}</span><small>장</small></div><div class="k">백서 본문</div></div>
           <div class="stat"><span class="ic">${icon("pin", 17)}</span><div class="v"><span data-count="${sites7}">${sites7}</span><small>곳</small></div><div class="k">현장별 분석</div></div>
-          <div class="stat"><span class="ic">${icon("sun", 17)}</span><div class="v"><span data-count="${Math.round(totalKwp)}">${fmt(totalKwp)}</span><small>kWp</small></div><div class="k">준공 ${REP.length}곳 합계</div></div>
+          <div class="stat"><span class="ic">${icon("check", 17)}</span><div class="v"><span data-count="${REP.length}">${REP.length}</span><small>곳</small></div><div class="k">준공 · 사용전검사</div></div>
           <div class="stat"><span class="ic">${icon("alert", 17)}</span><div class="v"><span data-count="${nIssues}">${nIssues}</span><small>건</small></div><div class="k">이슈 · 교훈</div></div>
         </div>
         <div class="meta"><span>버전 <b class="mono">${esc(m.version || "")}</b></span>${lastRev ? `<span>최근 개정 <b class="mono">${esc(lastRev[1])}</b></span>` : ""}<span>문서번호 <b class="mono">${esc(m.docno || "")}</b></span><span>${esc(m.org || "")}</span></div>
       </div>
-      <div class="reveal hero-glow">${heroArt()}</div>
-    </div><svg class="wave" viewBox="0 0 1440 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C 240 0 480 46 720 24 S 1200 8 1440 26 V46 H0z"/></svg></section>
+      <div class="reveal hero-panel">${heroPanel()}</div>
+    </div><span class="scroll-hint" aria-hidden="true"></span><svg class="wave" viewBox="0 0 1440 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C 240 0 480 46 720 24 S 1200 8 1440 26 V46 H0z"/></svg></section>
 
     <div class="wrap"><section class="sec reveal" style="margin-top:36px">
       <div class="sec-head"><div><div class="eyebrow">백서 지도</div><h2>5개 파트, ${nCh}개 장</h2><p>처음이라면 PART 1부터, 현장 분석은 PART 2, 실무 체크리스트는 PART 3을 펼치세요.</p></div><a class="from" href="#wp">표지 · 개정 이력 →</a></div>
@@ -494,7 +507,7 @@
       <div class="sec-head"><div><div class="eyebrow">4장 · 시공 공정 따라가기</div><h2>지붕 위에서 일어나는 일, 순서대로</h2>
       <p>덮이면 다시 볼 수 없는 부분(관통부 방수, 접지선, 결선)은 반드시 사진으로 남깁니다.</p></div><a class="from" href="#ch4">백서 4장 →</a></div>
       <div class="build">
-        <div class="card build-stage">${buildArt()}
+        <div class="card build-stage"><div class="build-photo" id="b-photo"><span class="no" id="b-no"></span><span class="cap" id="b-cap"></span></div>${buildArt()}
           <div class="build-ctrl"><button class="btn" type="button" id="b-prev" aria-label="이전 공정">‹</button><button class="btn" type="button" id="b-play">❚❚ 일시정지</button><button class="btn" type="button" id="b-next" aria-label="다음 공정">›</button><div class="prog"><i id="b-prog"></i></div><span class="mono" id="b-count" style="font-size:12px;color:var(--ink-3)"></span></div></div>
         <div class="card build-info" id="build-info"></div>
       </div></section>` : ""}
@@ -585,6 +598,19 @@
         const kv = t ? t.rows.map(cellsText) : [];
         info.innerHTML = `<div class="eyebrow">공정 ${cur + 1} / ${proc.length}</div><h3>${esc(p.title)}</h3><dl class="kv">${kv.map((r) => `<dt>${esc(r[0])}</dt><dd>${r[0].includes("사례") ? `<span class="tag-case">사례</span> ` : ""}${esc(r[1])}</dd>`).join("")}</dl>`;
         $("#b-prog", root).style.width = ((cur + 1) / proc.length * 100) + "%";
+        // 공정에 맞는 실제 현장 사진 (시공완료보고서 사진대지)
+        const KEYS = [["지붕", "강판"], ["안전"], ["구조물"], ["구조물", "모듈"], ["전기"], ["계통", "전기"], ["계통", "연계", "전기"]];
+        const keys = KEYS[Math.min(cur, KEYS.length - 1)];
+        const pool = REP.flatMap((r) => (r.photos || []).filter((ph) => keys.some((k) => ph.cap.includes(k))).map((ph) => ({ ...ph, site: r.site })));
+        const box = $("#b-photo", root);
+        if (pool.length && box) {
+          const ph = pool[(cur * 3) % pool.length];
+          const img = new Image(); img.src = ph.src; img.alt = ph.cap; img.style.opacity = "0";
+          img.onload = () => { requestAnimationFrame(() => { img.style.opacity = "1"; img.classList.add("in"); }); $$("img", box).forEach((o) => { if (o !== img) setTimeout(() => o.remove(), 650); }); };
+          box.insertBefore(img, box.firstChild);
+          $("#b-cap", root).textContent = `실제 현장 · ${norm(ph.site)} · ${ph.cap}`;
+          $("#b-no", root).textContent = `STEP ${cur + 1}`;
+        } else if (box) box.hidden = true;
         $("#b-count", root).textContent = `${cur + 1}/${proc.length}`;
       };
       const playBtn = $("#b-play", root);
@@ -817,7 +843,7 @@
     ];
     const cats = {}; issues.forEach((x) => { cats[x.cat] = (cats[x.cat] || 0) + 1; });
     root.innerHTML = `<div class="wrap view">
-      <div class="page-banner reveal" style="--bgimg:url('${((REP[1] || REP[0] || {}).location_img || {}).src || ""}')"><div class="eyebrow">PART 2 · 2026 군산 사업 분석</div><h1>현장 사례집</h1>
+      <div class="page-banner reveal" style="--bgimg:url('${((REP[2] || REP[0] || {}).location_img || {}).src || ""}')"><div class="eyebrow">PART 2 · 2026 군산 사업 분석</div><h1>현장 사례집</h1>
         <p>준공 현장 ${REP.length}곳의 시공완료보고서와 백서 7장 현장별 분석, 10장 이슈 레지스터를 현장 단위로 묶었습니다.</p>
         <div class="chips">${REP.map((r) => `<span>${esc(r.site)} <b>${fmt(r.kwp, 2)}kWp</b></span>`).join("")}<span>이슈 <b>${issues.length}</b>건</span></div></div>
 

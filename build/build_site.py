@@ -7,6 +7,7 @@
 - 결과 dist/index.html 하나에 화면 코드와 데이터가 모두 들어가고, 사진은 img/ · rep/ 폴더로 나간다.
 """
 import argparse
+import base64
 import os
 import re
 import datetime as dt
@@ -64,6 +65,7 @@ def main():
             if z:
                 (out / z["src"]).unlink(missing_ok=True)
                 z["external"] = f"{PUBLIC_URL}/#case-{i + 1}"
+    all_chars = set(json.dumps(data, ensure_ascii=False))  # 대외비 해제 후 보일 글자까지 글꼴에 남긴다
     if a.password:
         sys.path.insert(0, str(BUILD))
         from protect import protect
@@ -72,6 +74,7 @@ def main():
             (out / src).unlink(missing_ok=True)
         print(f"공개용 빌드: 대외비 암호화, 공개 폴더에서 뺀 사진 {len(hidden)}장")
 
+    font_src = SITE / "fonts" / "PretendardVariable.woff2"
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     html = (SITE / "index.template.html").read_text(encoding="utf-8")
     html = html.replace("/*__STYLE__*/", (SITE / "style.css").read_text(encoding="utf-8"))
@@ -84,6 +87,28 @@ def main():
                 '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
                 + head + "</style>\n</head>\n<body>\n" + body + "\n</body>\n</html>\n")
     (out / "index.html").write_text(html, encoding="utf-8")
+    # Pretendard: 페이지에 실제로 쓰인 글자만 남겨 용량을 줄인다 (fontTools 없으면 전체 파일)
+    (out / "fonts").mkdir(exist_ok=True)
+    try:
+        from fontTools import subset
+        chars = set(html) | all_chars | set(chr(c) for c in range(32, 127)) | set("₂·→←↑↓…“”‘’「」《》〔〕【】★✎✓✕※")
+        opts = subset.Options()
+        opts.flavor = "woff2"
+        opts.layout_features = ["*"]
+        font = subset.load_font(str(font_src), opts)
+        sub = subset.Subsetter(opts)
+        sub.populate(text="".join(chars))
+        sub.subset(font)
+        subset.save_font(font, str(out / "fonts" / "pretendard.woff2"), opts)
+    except ImportError:
+        shutil.copyfile(font_src, out / "fonts" / "pretendard.woff2")
+    # 글꼴은 페이지 안에 넣는다 (파일로 두면 로컬 열기 · 일부 호스트에서 CORS로 막힘)
+    font_b64 = base64.b64encode((out / "fonts" / "pretendard.woff2").read_bytes()).decode()
+    html = html.replace('url("fonts/pretendard.woff2") format("woff2-variations"), url("fonts/pretendard.woff2") format("woff2")',
+                        f'url(data:font/woff2;base64,{font_b64}) format("woff2")')
+    html = html.replace('<link rel="preload" href="fonts/pretendard.woff2" as="font" type="font/woff2" crossorigin>\n', "")
+    (out / "index.html").write_text(html, encoding="utf-8")
+    shutil.rmtree(out / "fonts")
     for f in ("whitepaper.json", "cost.json", "reports.json"):
         (out / f).unlink(missing_ok=True)
 
