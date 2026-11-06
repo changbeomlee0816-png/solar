@@ -6,11 +6,13 @@
 사용: python3 -I build/convert_reports.py <보고서 폴더> <출력 폴더>
 필요: poppler-utils (pdftotext, pdfimages)
 """
+import io
 import json
 import re
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 from PIL import Image
@@ -226,6 +228,39 @@ def extract_images(pdf, pages_wanted, outdir, prefix):
     return out
 
 
+def photo_zip(pdf, photo_pages, site, dst):
+    """사진대지 전체(원본 해상도)를 섹션 순서대로 묶은 ZIP. 반환: (사진 수, 섹션별 수)"""
+    folder = re.sub(r"\(주\)|\(유\)|[㈜()\s]", "", site or "현장") + "_사진대지"
+    sections, counts, n = [], {}, 0
+    with tempfile.TemporaryDirectory() as td, zipfile.ZipFile(dst, "w", zipfile.ZIP_STORED) as zf:
+        for pg in sorted(photo_pages):
+            subprocess.run(["pdfimages", "-f", str(pg), "-l", str(pg), "-j", "-p", str(pdf), f"{td}/p"], check=True)
+        for f in sorted(Path(td).iterdir()):
+            m = re.match(r"p-(\d+)-(\d+)\.(\w+)$", f.name)
+            if not m:
+                continue
+            try:
+                im = Image.open(f)
+                im.load()
+            except Exception:
+                continue
+            if min(im.size) < 300:
+                continue
+            cap = photo_pages[int(m.group(1))]
+            if cap not in sections:
+                sections.append(cap)
+            counts[cap] = counts.get(cap, 0) + 1
+            n += 1
+            name = f"{folder}/{sections.index(cap) + 1:02d}_{re.sub(r'[\\/:*?\"<>|·]+', '', cap).replace(' ', '')}/{counts[cap]:02d}.jpg"
+            if m.group(3).lower() == "jpg":
+                zf.write(f, name)  # 원본 JPEG 그대로
+            else:
+                buf = io.BytesIO()
+                im.convert("RGB").save(buf, "JPEG", quality=92)
+                zf.writestr(name, buf.getvalue())
+    return n, counts
+
+
 def main():
     src, out = Path(sys.argv[1]), Path(sys.argv[2])
     (out / "rep").mkdir(parents=True, exist_ok=True)
@@ -247,8 +282,13 @@ def main():
                 else:
                     (out / im["src"]).unlink(missing_ok=True)
         r["photos"] = photos
+        (out / "rep" / "zip").mkdir(parents=True, exist_ok=True)
+        zdst = out / "rep" / "zip" / f"photos-{i + 1}.zip"
+        n, counts = photo_zip(pdf, pp, r["site"], zdst)
+        r["photo_zip"] = {"src": f"rep/zip/photos-{i + 1}.zip", "count": n, "sections": counts, "size": zdst.stat().st_size,
+                          "name": re.sub(r"\(주\)|\(유\)|[㈜()\s]", "", r["site"] or f"현장{i + 1}") + "_사진대지.zip"}
         reports.append(r)
-        print(f"{pdf.name}: {r['site']} {r['kwp']}kWp, 공정 {len(r['timeline'])}건, 월별 {len(r['monthly'])}개월, 사진 {len(r['photos'])}장")
+        print(f"{pdf.name}: {r['site']} {r['kwp']}kWp, 공정 {len(r['timeline'])}건, 월별 {len(r['monthly'])}개월, 사진 {len(r['photos'])}장, 사진대지 ZIP {r['photo_zip']['count']}장 {r['photo_zip']['size'] / 1e6:.1f}MB")
     (out / "reports.json").write_text(json.dumps(reports, ensure_ascii=False), encoding="utf-8")
 
 

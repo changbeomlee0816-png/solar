@@ -19,6 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BUILD = ROOT / "build"
 SITE = ROOT / "site"
+PUBLIC_URL = "https://yuhost-solar-whitepaper.netlify.app"
 
 
 def run(script, *args):
@@ -56,6 +57,13 @@ def main():
             name = re.sub(r"\(주\)|\(유\)|[㈜()\s]", "", r.get("site") or f"현장{i + 1}") + "_시공완료보고서.pdf"
             r["pdf"] = {"src": f"rep/pdf/report-{i + 1}.pdf", "name": name, "size": dst.stat().st_size, "submitted": r.get("submitted")}
     data["built"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    if not a.password and data.get("reports"):
+        # Artifact(사내 전체본)는 ZIP을 실을 수 없어 공개 사이트의 같은 현장으로 연결한다
+        for i, r in enumerate(data["reports"]):
+            z = r.get("photo_zip")
+            if z:
+                (out / z["src"]).unlink(missing_ok=True)
+                z["external"] = f"{PUBLIC_URL}/#case-{i + 1}"
     if a.password:
         sys.path.insert(0, str(BUILD))
         from protect import protect

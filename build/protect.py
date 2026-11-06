@@ -104,9 +104,10 @@ def encrypt(obj, key, salt):
 
 
 def encrypt_pdfs(reports, key, root):
-    """시공완료보고서 PDF를 같은 키로 파일 단위 암호화 (rep/pdf/*.bin). 원본 PDF는 공개 폴더에서 지운다."""
+    """시공완료보고서 PDF · 사진대지 ZIP을 같은 키로 파일 단위 암호화 (*.bin). 원본은 공개 폴더에서 지운다."""
     for r in reports or []:
-        pdf = r.get("pdf")
+      for field in ("pdf", "photo_zip"):
+        pdf = r.get(field)
         if not pdf or pdf.get("enc"):
             continue
         src = root / pdf["src"]
