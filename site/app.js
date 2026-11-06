@@ -766,10 +766,109 @@
     // "PART 1(1~5장)", "7장", "12장, 13장" → 링크
     return deco(h).replace(/(\d{1,2})장/g, (m, n) => chByNum(+n) ? `<a href="#ch${n}">${m}</a>` : m);
   }
+
+  /* ---------- 7장 현장별 분석: 백서 표를 웹용으로 다시 디자인 ---------- */
+  const COVERS = { "우림2공장": "rep/r1-21-000.jpg" };  // 현장별 대표(완공) 사진
+  const cellH = (c) => deco(c.html || "");
+  const isLockRow = (r) => r.length === 1 && /lockph/.test(r[0].html || "");
+  const lockRow = (r) => `<div class="lockrow">${r[0].html}</div>`;
+  function siteSection(blocks, opt = {}) {
+    const parts = [{ title: null, blocks: [] }];
+    for (const b of blocks) { if (b.t === "h4") parts.push({ title: b.text, blocks: [] }); else parts[parts.length - 1].blocks.push(b); }
+    const sub = (t, ic, body, cls = "") => `<section class="ss ${cls}"><h4 class="ss-h">${ic ? `<span class="ss-ic">${icon(ic, 17)}</span>` : ""}${deco(esc(t))}</h4>${body}</section>`;
+    let html = "";
+    for (const p of parts) {
+      const t = p.title || "";
+      if (!p.title) html += siteProfile(p.blocks);
+      else if (/진행 경과/.test(t)) html += sub(t, "chart", siteTimeline(p.blocks), "ss-tl");
+      else if (/인허가/.test(t)) html += sub(t, "doc", siteNotes(p.blocks, "permit"));
+      else if (/시공 특이/.test(t)) html += sub(t, "tool", siteNotes(p.blocks, "build"));
+      else if (/미결/.test(t)) html += sub(t, "check", siteOpen(p.blocks));
+      else if (/시공 기록|업무일지/.test(t)) html += sub(t, "steps", siteWorklog(p.blocks), "ss-log");
+      else if (/사진/.test(t)) { if (!opt.noPhotos) html += sub(t, "grid", renderBlocks(p.blocks)); }
+      else if (/비교/.test(t)) html += sub(t, "scale", siteCompare(p.blocks), "ss-cmp");
+      else html += sub(t, null, renderBlocks(p.blocks));
+    }
+    return `<div class="site-sec">${html}</div>`;
+  }
+  function siteProfile(blocks) {
+    let html = "";
+    for (const b of blocks) {
+      if (b.t === "table" && !b.head && b.rows.every((r) => r.length === 2 || isLockRow(r))) {
+        html += `<div class="sp-grid">${b.rows.map((r) => isLockRow(r) ? lockRow(r) : `<div class="sp"><span>${esc(plain(r[0].html))}</span><b>${cellH(r[1])}</b></div>`).join("")}</div>`;
+      } else html += renderBlock(b);
+    }
+    return html;
+  }
+  const MAJOR = /허가|검사|합격|계약|철회|착공|준공|확인증|완료보고|보류|재개/;
+  function siteTimeline(blocks) {
+    return blocks.map((b) => {
+      if (b.t !== "table") return renderBlock(b);
+      const rows = b.rows.slice(b.head || 0);
+      return `<ol class="stl">${rows.map((r) => isLockRow(r) ? `<li>${lockRow(r)}</li>` : `<li class="${MAJOR.test(plain(r[1] ? r[1].html : "")) ? "major" : ""}"><span class="stl-d">${esc(plain(r[0].html))}</span><div class="stl-b">${r.slice(1).map(cellH).join(" · ")}</div></li>`).join("")}</ol>`;
+    }).join("");
+  }
+  function siteNotes(blocks, kind) {
+    return blocks.map((b) => {
+      if (b.t === "ul") return `<ol class="snotes ${kind}">${b.items.map((x) => `<li>${deco(x)}</li>`).join("")}</ol>`;
+      if (b.t === "callout" && /교훈/.test(b.title || "")) {
+        const items = b.c.map((x) => x.html || "").filter(Boolean);
+        return `<div class="slesson"><div class="slesson-h">${icon("star", 16)} ${esc(b.title)}</div><ol>${items.map((x) => `<li>${deco(x)}</li>`).join("")}</ol></div>`;
+      }
+      return renderBlock(b);
+    }).join("");
+  }
+  function siteOpen(blocks) {
+    return blocks.map((b) => {
+      if (b.t !== "table") return renderBlock(b);
+      const head = b.head ? cellsText(b.rows[0]) : [];
+      const rows = b.rows.slice(b.head || 0);
+      return `<div class="sopen">${rows.filter((r) => isLockRow(r) || cellsText(r).some((x) => x.trim())).map((r) => {
+        if (isLockRow(r)) return lockRow(r);
+        const txt = cellsText(r), done = /완료|합격|종결/.test(txt[3] || "") || /^(완료|합격)/.test((txt[1] || "").trim());
+        const who = txt[2] && txt[2].trim(), due = txt[3] && txt[3].trim();
+        return `<div class="so ${done ? "done" : ""}"><span class="so-st">${done ? "✓" : "!"}</span><div><b>${cellH(r[0])}</b><p>${r[1] ? cellH(r[1]) : ""}</p></div>
+          <div class="so-meta">${who ? `<span class="chip">${esc(who)}</span>` : ""}<span class="chip ${done ? "good" : "warn"}">${esc(due || (done ? "완료" : "미정"))}</span></div></div>`;
+      }).join("")}</div>${head.length ? "" : ""}`;
+    }).join("");
+  }
+  const WORK = [["사업관리", "#7a849a"], ["자재", "#a0682e"], ["지붕", "#3266ff"], ["강판", "#3266ff"], ["안전", "#f08400"], ["구조물", "#24407a"], ["모듈", "#1d3fbf"], ["전기", "#d4a000"], ["검사", "#12a36b"], ["시운전", "#12a36b"], ["준공", "#12a36b"]];
+  const workChips = (s) => String(s).split(/[·,/]/).map((x) => x.trim()).filter(Boolean).map((x) => { const m = WORK.find(([k]) => x.includes(k)); return `<span class="wk" style="--wc:${m ? m[1] : "#7a849a"}">${esc(x)}</span>`; }).join("");
+  function siteWorklog(blocks) {
+    return blocks.map((b) => {
+      if (b.t === "p") return `<p class="slog-intro">${deco(b.html)}</p>`;
+      if (b.t !== "table") return renderBlock(b);
+      const rows = b.rows.slice(b.head || 0).filter((r) => !isLockRow(r)).map(cellsText);
+      const ppl = rows.map((r) => parseInt(r[3], 10) || 0), mx = Math.max(1, ...ppl);
+      const total = ppl.reduce((a, x) => a + x, 0), days = ppl.filter((x) => x > 0).length;
+      return `<div class="slog-sum"><div><b>${rows.length}</b><span>기록</span></div><div><b>${days}</b><span>작업일</span></div><div><b>${total}</b><span>투입 인원 (인·일)</span></div>
+          <div class="slog-bars" aria-label="일자별 투입 인원">${rows.map((r, i) => `<i title="${esc(r[0])} ${ppl[i]}명" style="height:${ppl[i] ? Math.max(8, ppl[i] / mx * 100) : 3}%;${ppl[i] ? "" : "background:var(--line-2)"}"></i>`).join("")}</div></div>
+        <ol class="slog">${rows.map((r, i) => `<li><span class="slog-d">${esc(r[0])}</span><div class="slog-b"><div class="slog-w">${workChips(r[1])}${ppl[i] ? `<span class="slog-p">${icon("people", 13)} ${ppl[i]}명</span>` : ""}</div><p>${deco(esc(r[2] || ""))}</p></div></li>`).join("")}</ol>`;
+    }).join("");
+  }
+  function siteCompare(blocks) {
+    return blocks.map((b) => {
+      if (b.t !== "table" || !b.head) return renderBlock(b);
+      const h = cellsText(b.rows[0]);
+      const rows = b.rows.slice(b.head);
+      return `<div class="scmp"><div class="scmp-h"><span></span><b class="a">${esc(h[1] || "")}</b><span class="vs">VS</span><b class="b">${esc(h[2] || "")}</b></div>
+        ${rows.map((r) => isLockRow(r) ? lockRow(r) : `<div class="scmp-r"><div class="scmp-k">${cellH(r[0])}</div><div class="scmp-a">${r[1] ? cellH(r[1]) : ""}</div><div class="scmp-b">${r[2] ? cellH(r[2]) : ""}</div></div>`).join("")}</div>`;
+    }).join("");
+  }
+  function renderCh7(blocks) {
+    let html = "", cur = null;
+    const flush = () => { if (cur) { html += renderBlock(cur.h) + siteSection(cur.blocks); cur = null; } };
+    for (const b of blocks) {
+      if (b.t === "h3") { flush(); cur = { h: b, blocks: [] }; continue; }
+      if (cur) cur.blocks.push(b); else html += renderBlock(b);
+    }
+    flush();
+    return html;
+  }
   function siteCard(r, i) {
     const e = r.effect || {};
     // 개요 카드에는 완공 후 드론 사진을 쓴다 (현장별 지정 → 보고서 4쪽 항공사진 → 공정 사진)
-    const COVER = { "우림2공장": "rep/r1-21-000.jpg" };
+    const COVER = COVERS;
     const cover = COVER[norm(r.site)] && (r.photos.find((p) => p.src === COVER[norm(r.site)]) || { src: COVER[norm(r.site)] });
     const img = cover || (r.location_img && r.location_img.src && i > 0 ? r.location_img : (r.photos.find((p) => /구조물|모듈/.test(p.cap)) || r.hero_img || {}));
     return `<a class="card site-card" href="#case-${i + 1}">
@@ -852,7 +951,7 @@
       doc.innerHTML = `<header class="ch-banner" style="--pc:${pcolor(cur.pi)}"><div class="part">${esc(p.label || "문서")} · ${esc(p.title)}</div>${typeof c.num === "number" ? `<div class="bignum" aria-hidden="true">${String(c.num).padStart(2, "0")}</div><span class="ic">${icon(CH_IC[c.num], 24)}</span>` : ""}<h1>${esc(c.title)}</h1>
         <div class="meta">${(c.sections || []).length ? `<span>절 ${c.sections.length}개</span>` : ""}${nTbl ? `<span>표 ${nTbl}개</span>` : ""}${nImg ? `<span>그림 · 사진 ${nImg}장</span>` : ""}${c.locked ? "<span>🔒 대외비</span>" : ""}</div></header>
         ${c.id === "appendix" && FORMS ? `<div class="form-cta"><div><b>이 양식들을 Word 파일로 받을 수 있습니다</b><span>현장에서 바로 쓰도록 디자인하고, 백서 · 보고서 내용으로 필요한 칸을 채웠습니다.</span></div><a class="btn primary" href="#forms">양식 내려받기 →</a></div>` : ""}
-        ${renderBlocks(c.blocks)}
+        ${c.id === "ch7" || c.num === 7 ? renderCh7(c.blocks) : renderBlocks(c.blocks)}
         <nav class="pager">${prev ? `<a href="#${prev.c.id}"><small>← 이전</small>${esc(chLabel(prev.c))}</a>` : "<span></span>"}${next ? `<a class="next" href="#${next.c.id}"><small>다음 →</small>${esc(chLabel(next.c))}</a>` : "<span></span>"}</nav>`;
       sub.innerHTML = (c.sections || []).length ? `<div class="eyebrow">이 장의 절</div>` + c.sections.map((s) => `<a href="#${s.id}" data-sec="${s.id}">${esc(s.text)}</a>`).join("") : "";
     };
@@ -988,12 +1087,13 @@
       const sk = shortKey(rkey(r));
       const related = issues.filter((x) => x.site.includes(sk) || x.site.includes("전 현장"));
       const e = r.effect || {};
-      const pics = [r.hero_img, r.location_img, ...r.photos.filter((p) => /구조물|모듈/.test(p.cap)).slice(0, 1)].filter((x) => x && x.src);
+      const cover = COVERS[norm(r.site)] ? (r.photos.find((p) => p.src === COVERS[norm(r.site)]) || { src: COVERS[norm(r.site)] }) : null;
+      const pics = (cover ? [cover, r.hero_img, r.location_img] : [r.hero_img, r.location_img, ...r.photos.filter((p) => /구조물|모듈/.test(p.cap)).slice(0, 1)]).filter((x) => x && x.src);
       const photoCaps = [...new Set(r.photos.map((p) => p.cap))];
       const kpi = (cls, k, v, s) => `<div class="kpi ${cls}"><div class="k">${esc(k)}</div><div class="v">${esc(shortWon(v))}</div>${s ? `<div class="s">${esc(s)}</div>` : ""}</div>`;
       $("#case-detail", root).innerHTML = `
         <div class="case-head reveal">
-          <div class="case-photos" data-lbgroup="hero">${pics.map((p, k) => `<button type="button" data-lb="${p.src}" data-cap="${esc(r.site)} ${k === 0 ? "전경" : k === 1 ? "설치 위치" : "시공"}"><img src="${p.src}" alt="" loading="lazy"></button>`).join("")}</div>
+          <div class="case-photos" data-lbgroup="hero">${pics.map((p, k) => `<button type="button" data-lb="${p.src}" data-cap="${esc(r.site)} ${cover ? ["완공 드론 사진", "전경", "설치 위치"][k] : k === 0 ? "전경" : k === 1 ? "설치 위치" : "시공"}"><img src="${p.src}" alt="" loading="lazy"></button>`).join("")}</div>
           <div class="card case-facts"><div class="row" style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip good">준공</span><span class="chip info">자가소비 (갑)</span><span class="chip">${esc(r.submitted || "")} 보고서 제출</span></div>
             <h2 style="margin-top:10px">${esc(r.site)}</h2><p style="margin:0;color:var(--ink-2);font-size:13.5px">${esc(r.address || "")}</p>
             <dl class="kv"><dt>설비</dt><dd>${esc(r.capacity_text || "")}</dd>${r.contract_amount ? `<dt>계약 금액</dt><dd><span class="mono">${fmt(r.contract_amount)}</span>원 (VAT 별도)</dd>
@@ -1018,7 +1118,7 @@
         <div class="card panel reveal" style="margin-top:16px"><h3>현장 사진 <span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="from">보고서 9장 사진대지 · 공정별 대표 ${r.photos.length}장${r.photo_zip ? ` · 전체 ${r.photo_zip.count}장은 ZIP` : ""}</span>${zipBtn(r, i)}</span></h3>
           <div class="seg" id="ph-tabs" role="group" aria-label="공정 선택">${photoCaps.map((c, k) => `<button type="button" data-c="${esc(c)}" aria-pressed="${k === 0}">${esc(c)}</button>`).join("")}</div>
           <div id="ph-grid"></div></div>
-        ${sec ? `<div class="card panel reveal" style="margin-top:16px"><h3>백서 현장별 분석 · ${esc(sec.title)} <a class="from" href="#${sec.id}">백서에서 보기 →</a></h3><div class="doc ${prefs.guide ? "" : "hide-guide"} ${prefs.secret ? "" : "hide-secret"}" style="max-width:none">${renderBlocks(sec.blocks.filter((b) => b.t !== "gallery"))}</div></div>` : ""}
+        ${sec ? `<div class="card panel reveal" style="margin-top:16px"><h3>백서 현장별 분석 · ${esc(sec.title)} <a class="from" href="#${sec.id}">백서에서 보기 →</a></h3><div class="doc ${prefs.guide ? "" : "hide-guide"} ${prefs.secret ? "" : "hide-secret"}" style="max-width:none">${siteSection(sec.blocks, { noPhotos: true })}</div></div>` : ""}
         ${related.length ? `<div class="card reveal" style="margin-top:16px"><div class="panel" style="padding-bottom:0"><h3>이 현장 관련 이슈 ${related.length}건</h3></div>${related.map(issueRow).join("")}</div>` : ""}`;
       const grid = $("#ph-grid", root);
       const showCap = (cap) => {
