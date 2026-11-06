@@ -1192,18 +1192,21 @@
   const PUBLIC_URL = "https://yuhost-solar-whitepaper.netlify.app";
   async function downloadReport(i, btn) {
     const r = REP[i], pdf = r && r.pdf; if (!pdf) return;
-    if (!pdf.enc) {
-      const a = document.createElement("a"); a.href = pdf.src; a.download = pdf.name; document.body.appendChild(a); a.click(); a.remove();
-      if (/claude\.ai|claudeusercontent/.test(location.hostname)) toast("이 화면에서 내려받기가 막히면 공개 사이트에서 받으세요: " + PUBLIC_URL);
-      return;
-    }
-    if (!vaultKey) { askPassword(); toast("시공완료보고서는 대외비입니다. 암호를 입력한 뒤 다시 누르세요."); return; }
+    if (pdf.enc && !vaultKey) { askPassword(); toast("시공완료보고서는 대외비입니다. 암호를 입력한 뒤 다시 누르세요."); return; }
     const old = btn ? btn.innerHTML : "";
     try {
       if (btn) { btn.disabled = true; btn.textContent = "내려받는 중…"; }
-      const buf = await (await fetch(pdf.src)).arrayBuffer();
-      const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(pdf.iv) }, vaultKey, buf);
-      const url = URL.createObjectURL(new Blob([plainBuf], { type: "application/pdf" }));
+      let buf = await (await fetch(pdf.src)).arrayBuffer();
+      if (pdf.enc) buf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(pdf.iv) }, vaultKey, buf);
+      const blob = new Blob([buf], { type: "application/pdf" });
+      // claude.ai Artifact 안에서는 전용 다운로드 기능으로 저장 (일반 링크는 막혀 있음)
+      const dl = window.claude && window.claude.use ? await window.claude.use("downloads").catch(() => null) : null;
+      if (dl) {
+        try { await dl.save({ filename: pdf.name, data: blob }); toast(pdf.name + " 을(를) 저장했습니다."); }
+        catch (err) { if (err && err.code !== "declined") toast("이 화면에서는 저장할 수 없습니다. 공개 사이트에서 받으세요: " + PUBLIC_URL); }
+        return;
+      }
+      const url = URL.createObjectURL(blob);
       const a = document.createElement("a"); a.href = url; a.download = pdf.name; document.body.appendChild(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
       toast(pdf.name + " 을(를) 내려받았습니다.");
