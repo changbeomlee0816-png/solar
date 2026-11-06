@@ -15,6 +15,7 @@
 | 개요 | `#home` | 전기 흐름 · 사업 유형 · 10단계 흐름 · 시공 공정 애니메이션, 용량 계산기, 준공 현장 카드 | 백서 1~4장, 10장, 21.5 |
 | 백서 | `#wp`, `#ch7`, `#s21-6` … | 전체 본문 리더 (목차 · 검색 · 절 목차 · 사진 확대 · 작성가이드/대외비 표시 전환) | 백서 .docx 전체 |
 | 사례집 | `#cases`, `#case-1` … | 시공완료보고서 PDF · 사진대지 ZIP(공정별 폴더) 내려받기, 준공 현장 비교, 현장별 공정 · 사업비 · 월별 발전 · 사용전검사 · 사진대지, 7장 현장별 분석, 이슈 레지스터 필터 | 시공완료보고서 PDF + 백서 7 · 10장 |
+| 양식 | `#forms` | 백서 부록 A~J를 디자인한 Word 양식(.docx, Pretendard 내장) 10종 + 전체 모음, 미리보기 · 내려받기 | 백서 부록 · 1 · 5 · 6 · 10장 + 시공완료보고서 |
 | 원가 분석 | `#cost` | 항목별 시장 기준 대비 판정, 노무비 실투입 분석, 기준단가 · 인원 일지 편집 시 즉시 재계산, 새 견적 빠른 검토 | 원가관리 툴 .xlsx + 백서 21장 |
 
 화면의 표 · 문구는 원본 파일에서 자동으로 뽑아 오므로, **백서에 내용을 추가하고 다시 빌드하면 웹도 같이 바뀝니다.**
@@ -28,7 +29,7 @@ Claude Code 세션에서 이 저장소를 열고 새 백서(.docx) · 원가 툴
 
 ### 직접 빌드하기
 ```bash
-pip install python-docx openpyxl pillow   # poppler-utils(pdftotext, pdfimages)도 필요
+pip install python-docx openpyxl pillow fonttools brotli cryptography   # poppler-utils, node + docx(npm), LibreOffice(미리보기)도 필요
 ```
 ```bash
 python3 -I build/build_site.py --docx source/백서.docx --xlsx source/원가관리툴.xlsx --reports source/reports --out dist
@@ -51,6 +52,10 @@ build/convert_xlsx.py     원가관리 툴 .xlsx → 입력값 JSON (계산은 �
 build/convert_reports.py  시공완료보고서 PDF → 핵심 수치 · 공정 · 사진
 build/build_site.py       위 세 개를 돌려 dist/index.html 하나로 묶음
 build/protect.py          공개용: 대외비 제거 + 원본 암호화
+build/make_forms.js       부록 양식 → 디자인한 Word(.docx) (docx npm)
+build/make_docx_fonts.py  Word에 넣을 Pretendard Regular · Bold TTF (KS X 1001 한글 2,350자 + 기호)
+build/finish_docx.py      Word에 Bold 글꼴 추가 · 글꼴 포함 저장 설정
+site/fonts/               Pretendard Variable (SIL OFL 1.1)
 site/                     화면 코드 (index.template.html, style.css, app.js)
 source/                   원본 자료 두는 곳 (git 제외)
 ```

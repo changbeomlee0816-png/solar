@@ -6,3 +6,4 @@ dist/
 *.xlsx
 *.pdf
 __pycache__/
+build/.cache/

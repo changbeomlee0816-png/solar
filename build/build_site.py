@@ -27,6 +27,53 @@ def run(script, *args):
     subprocess.run([sys.executable, "-I", str(BUILD / script), *map(str, args)], check=True)
 
 
+def make_forms(data, out):
+    """백서 부록 A~J → 디자인한 Word 양식(.docx, Pretendard 포함) + 미리보기 이미지."""
+    node = shutil.which("node")
+    if not node:
+        print("node 가 없어 Word 양식을 건너뜀")
+        return None
+    fonts = BUILD / ".cache" / "docxfonts"
+    if not (fonts / "Pretendard-Bold.ttf").exists():
+        run("make_docx_fonts.py", fonts)
+    tmp = out / "_tmp"
+    tmp.mkdir(exist_ok=True)
+    (tmp / "wp.json").write_text(json.dumps(data["wp"], ensure_ascii=False), encoding="utf-8")
+    (tmp / "rep.json").write_text(json.dumps(data.get("reports") or [], ensure_ascii=False), encoding="utf-8")
+    fdir = out / "forms"
+    env = dict(os.environ)
+    try:
+        env["NODE_PATH"] = subprocess.run(["npm", "root", "-g"], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        pass
+    subprocess.run([node, str(BUILD / "make_forms.js"), str(tmp / "wp.json"), str(tmp / "rep.json"), str(fdir), str(fonts)], check=True, env=env)
+    docs = sorted(fdir.glob("*.docx"))
+    run("finish_docx.py", fonts, *docs)
+    meta = json.loads((fdir / "forms.json").read_text(encoding="utf-8"))
+    # 미리보기: 첫 쪽을 PNG로 (LibreOffice 가 있을 때)
+    soffice = shutil.which("soffice") or shutil.which("libreoffice")
+    entries = meta["forms"] + [meta["all"]]
+    for f in entries:
+        f["src"] = f"forms/{f['file']}"
+        f["name"] = f["file"]
+        f["size"] = (fdir / f["file"]).stat().st_size
+    if soffice:
+        for i, f in enumerate(meta["forms"]):
+            subprocess.run([soffice, "--headless", "--convert-to", "pdf", "--outdir", str(tmp), str(fdir / f["file"])], capture_output=True, timeout=180)
+            pdf = tmp / (Path(f["file"]).stem + ".pdf")
+            if pdf.exists():
+                pages = re.search(r"Pages:\s+(\d+)", subprocess.run(["pdfinfo", str(pdf)], capture_output=True, text=True).stdout)
+                f["pages"] = int(pages.group(1)) if pages else 1
+                stem = fdir / f"thumb-{f['code']}"
+                subprocess.run(["pdftoppm", "-png", "-r", "60", "-f", "1", "-l", "1", "-singlefile", str(pdf), str(stem)], check=True)
+                f["thumb"] = f"forms/thumb-{f['code']}.png"
+    for x in ("forms.json", "chars.txt"):
+        (fdir / x).unlink(missing_ok=True)
+    shutil.rmtree(tmp)
+    print(f"Word 양식 {len(meta['forms'])}종 + 모음 1종 (미리보기 {'있음' if soffice else '없음'})")
+    return meta
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--docx", required=True)
@@ -58,6 +105,14 @@ def main():
             name = re.sub(r"\(주\)|\(유\)|[㈜()\s]", "", r.get("site") or f"현장{i + 1}") + "_시공완료보고서.pdf"
             r["pdf"] = {"src": f"rep/pdf/report-{i + 1}.pdf", "name": name, "size": dst.stat().st_size, "submitted": r.get("submitted")}
     data["built"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    forms = make_forms(data, out)
+    if forms:
+        data["forms"] = forms
+        if not a.password:
+            # Artifact 본은 Word 파일을 실을 수 없어 공개 사이트의 양식 화면으로 연결한다
+            for f in forms["forms"] + [forms["all"]]:
+                (out / f["src"]).unlink(missing_ok=True)
+                f["external"] = f"{PUBLIC_URL}/#forms"
     if not a.password and data.get("reports"):
         # Artifact(사내 전체본)는 ZIP을 실을 수 없어 공개 사이트의 같은 현장으로 연결한다
         for i, r in enumerate(data["reports"]):
@@ -70,6 +125,8 @@ def main():
         sys.path.insert(0, str(BUILD))
         from protect import protect
         data, hidden = protect(data, a.password, out)
+        if forms:
+            data["forms"] = forms  # 양식에는 대외비가 없어 공개본에 그대로 싣는다
         for src in hidden:
             (out / src).unlink(missing_ok=True)
         print(f"공개용 빌드: 대외비 암호화, 공개 폴더에서 뺀 사진 {len(hidden)}장")

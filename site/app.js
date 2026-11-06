@@ -7,6 +7,7 @@
   let COST = D.cost || null;
   let REP = D.reports || [];
   const VAULT = D.vault || null;
+  const FORMS = D.forms || null;
   let unlocked = !VAULT;
   const BUILT = D.built || "";
   const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -523,6 +524,9 @@
       </div></section>` : ""}
 
     <section class="sec reveal">
+      ${FORMS ? `<div class="sec-head"><div><div class="eyebrow">현장 양식 · Word</div><h2>현장에서 바로 쓰는 양식 ${FORMS.forms.length}종</h2><p>백서 부록 양식을 Pretendard로 디자인한 Word 파일로 만들었습니다. 체크 항목 · 기준 · 준공 현장 정보까지 채워 두었습니다.</p></div><a class="from" href="#forms">양식 전체 →</a></div>
+        <div class="form-strip">${FORMS.forms.slice(0, 5).map((f) => `<a class="form-mini" href="#forms">${f.thumb ? `<img src="${f.thumb}" alt="" loading="lazy">` : ""}<span><b>${esc(f.code)}</b> ${esc(f.title)}</span></a>`).join("")}</div></section>
+    <section class="sec reveal">` : ""}
       <div class="sec-head"><div><div class="eyebrow">2026 군산 현장</div><h2>준공된 현장 ${REP.length}곳</h2><p>시공완료보고서 기준 수치입니다. 카드를 누르면 사례집에서 공정 · 사진 · 기대효과를 볼 수 있습니다.</p></div><a class="from" href="#cases">사례집 전체 →</a></div>
       <div class="grid-3">${REP.map((r, i) => siteCard(r, i)).join("")}</div>
     </section>
@@ -740,6 +744,7 @@
       const nTbl = c.blocks.filter((b) => b.t === "table").length, nImg = c.blocks.reduce((a, b) => a + (b.t === "fig" ? 1 : b.t === "gallery" ? b.items.length : 0), 0);
       doc.innerHTML = `<header class="ch-banner" style="--pc:${pcolor(cur.pi)}"><div class="part">${esc(p.label || "문서")} · ${esc(p.title)}</div>${typeof c.num === "number" ? `<div class="bignum" aria-hidden="true">${String(c.num).padStart(2, "0")}</div><span class="ic">${icon(CH_IC[c.num], 24)}</span>` : ""}<h1>${esc(c.title)}</h1>
         <div class="meta">${(c.sections || []).length ? `<span>절 ${c.sections.length}개</span>` : ""}${nTbl ? `<span>표 ${nTbl}개</span>` : ""}${nImg ? `<span>그림 · 사진 ${nImg}장</span>` : ""}${c.locked ? "<span>🔒 대외비</span>" : ""}</div></header>
+        ${c.id === "appendix" && FORMS ? `<div class="form-cta"><div><b>이 양식들을 Word 파일로 받을 수 있습니다</b><span>현장에서 바로 쓰도록 디자인하고, 백서 · 보고서 내용으로 필요한 칸을 채웠습니다.</span></div><a class="btn primary" href="#forms">양식 내려받기 →</a></div>` : ""}
         ${renderBlocks(c.blocks)}
         <nav class="pager">${prev ? `<a href="#${prev.c.id}"><small>← 이전</small>${esc(chLabel(prev.c))}</a>` : "<span></span>"}${next ? `<a class="next" href="#${next.c.id}"><small>다음 →</small>${esc(chLabel(next.c))}</a>` : "<span></span>"}</nav>`;
       sub.innerHTML = (c.sections || []).length ? `<div class="eyebrow">이 장의 절</div>` + c.sections.map((s) => `<a href="#${s.id}" data-sec="${s.id}">${esc(s.text)}</a>`).join("") : "";
@@ -1212,13 +1217,45 @@
   const hhmm = (h) => { if (!isFinite(h)) return ""; const H = Math.floor(h), M = Math.round((h - H) * 60); return String(H).padStart(2, "0") + ":" + String(M).padStart(2, "0"); };
   const parseHM = (s) => { const m = String(s).trim().match(/^(\d{1,2})(?::(\d{2}))?$/); return m ? +m[1] + (+(m[2] || 0)) / 60 : null; };
 
+  /* ======================================================================
+     현장 양식 (Word)
+     ====================================================================== */
+  function renderForms(root) {
+    if (!FORMS) { root.innerHTML = '<div class="wrap view"><p>양식 데이터가 없습니다.</p></div>'; return; }
+    const F = FORMS.forms;
+    root.innerHTML = `<div class="wrap view">
+      <div class="page-banner forms-banner reveal"><div class="eyebrow">백서 부록 · 양식 모음</div><h1>현장 양식</h1>
+        <p>실사부터 O&amp;M까지 현장에서 쓰는 양식 ${F.length}종입니다. A4 한 장에 맞춘 Word 파일로, Pretendard 글꼴이 파일 안에 들어 있어 어느 PC에서 열어도 같은 디자인으로 보입니다.</p>
+        <div class="chips"><span>Word (.docx)</span><span>Pretendard 내장</span><span>A4 인쇄용</span><span>결재란 포함</span></div>
+        <div style="margin-top:18px">${formBtn(FORMS.all, `⬇ 전체 모음 받기 (A~${F[F.length - 1].code})`, "btn primary big")}</div></div>
+      <div class="forms-grid">${F.map((f) => `<article class="card form-card reveal">
+        <button type="button" class="form-thumb" ${f.thumb ? `data-lb="${f.thumb}" data-cap="양식 ${esc(f.code)} ${esc(f.title)} 미리보기"` : ""} aria-label="미리보기 크게 보기">${f.thumb ? `<img src="${f.thumb}" alt="양식 ${esc(f.code)} 미리보기" loading="lazy">` : `<span class="ph">${esc(f.code)}</span>`}</button>
+        <div class="form-body"><div class="form-meta"><span class="form-code">양식 ${esc(f.code)}</span><span class="chip">${esc(f.sub)}</span>${f.pages ? `<span class="chip">${f.pages}쪽${f.landscape ? " · 가로" : ""}</span>` : ""}</div>
+          <h3>${esc(f.title)}</h3><p>${esc(f.desc)}</p>
+          <div class="form-actions">${formBtn(f, "⬇ Word 받기")}</div></div></article>`).join("")}</div>
+      <div class="card panel reveal" style="margin-top:28px"><h3>미리 채워 둔 내용</h3>
+        <ul class="filled">
+          <li><b>A 현장실사</b> 11개 항목마다 확인 방법 · 기준과 2026 이슈 번호</li>
+          <li><b>C TBM</b> 지붕 태양광 대표 위험요인 7가지와 안전 대책</li>
+          <li><b>D 안전시설</b> 항목별 점검 기준 (안전난간 높이, 작업발판 폭, 풍속 등)</li>
+          <li><b>E 사고 보고</b> 즉시 조치 순서와 사내 보고 체계(백서 5.5)</li>
+          <li><b>F 현장 개요 카드</b> 준공 현장 ${REP.length}곳을 시공완료보고서 값으로 채운 카드</li>
+          <li><b>I O&amp;M</b> 점검 방법 · 주기와 FEMS 운영 루틴</li>
+          <li><b>J 월간 발전</b> 현장별 월 예상 발전량 기준표</li>
+        </ul>
+        <p class="from" style="margin-top:8px">백서 부록이 바뀌면 다음 업데이트 때 양식도 함께 다시 만들어집니다.</p></div>
+    </div>`;
+  }
+
   /* ---------- 대외비 잠금 해제 ---------- */
   const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
   let vaultKey = null;
   const PUBLIC_URL = "https://yuhost-solar-whitepaper.netlify.app";
   async function downloadReport(i, btn, kind = "pdf") {
     const r = REP[i], pdf = r && r[kind]; if (!pdf) return;
-    const mime = kind === "pdf" ? "application/pdf" : "application/zip";
+    return downloadFile(pdf, btn, kind === "pdf" ? "application/pdf" : "application/zip");
+  }
+  async function downloadFile(pdf, btn, mime) {
     if (pdf.enc && !vaultKey) { askPassword(); toast("현장 자료는 대외비입니다. 암호를 입력한 뒤 다시 누르세요."); return; }
     const old = btn ? btn.innerHTML : "";
     try {
@@ -1243,6 +1280,12 @@
   const dlBtn = (r, i, cls = "btn primary") => r.pdf ? `<button type="button" class="${cls}" data-dl="${i}">${r.pdf.enc && !unlocked ? "🔒 " : "⬇ "}시공완료보고서 PDF <small class="mono" style="opacity:.75">${(r.pdf.size / 1048576).toFixed(1)}MB</small></button>` : "";
   const zipBtn = (r, i, cls = "btn") => r.photo_zip && r.photo_zip.external ? `<a class="${cls}" href="${esc(r.photo_zip.external)}" target="_blank" rel="noopener">⬇ 사진대지 ${r.photo_zip.count}장 ZIP <small style="opacity:.75">공개 사이트에서</small></a>` : r.photo_zip ? `<button type="button" class="${cls}" data-dl="${i}" data-kind="photo_zip">${r.photo_zip.enc && !unlocked ? "🔒 " : "⬇ "}사진대지 ${r.photo_zip.count}장 ZIP <small class="mono" style="opacity:.75">${(r.photo_zip.size / 1048576).toFixed(1)}MB</small></button>` : "";
   document.addEventListener("click", (e) => { const b = e.target.closest("[data-dl]"); if (b) { e.preventDefault(); downloadReport(+b.dataset.dl, b, b.dataset.kind || "pdf"); } });
+  const DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+  const formOf = (code) => (code === "ALL" ? FORMS.all : FORMS.forms.find((f) => f.code === code));
+  const formBtn = (f, label, cls = "btn primary") => f.external
+    ? `<a class="${cls}" href="${esc(f.external)}" target="_blank" rel="noopener">${label} <small style="opacity:.7">공개 사이트에서</small></a>`
+    : `<button type="button" class="${cls}" data-form="${f.code || "ALL"}">${label} <small class="mono" style="opacity:.7">${Math.max(1, Math.round(f.size / 1024))}KB</small></button>`;
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-form]"); if (b && FORMS) { e.preventDefault(); downloadFile(formOf(b.dataset.form), b, DOCX); } });
   async function decryptVault(pw) {
     const v = VAULT;
     const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
@@ -1298,6 +1341,7 @@
     else if (h === "cases" || h === "cases-issues") { tab = "cases"; renderCases(main, 0); if (h === "cases-issues") requestAnimationFrame(() => { const el = $("#cases-issues"); el && el.scrollIntoView(); }); }
     else if (/^case-\d+$/.test(h)) { tab = "cases"; renderCases(main, +h.split("-")[1]); }
     else if (h === "cost") { tab = "cost"; renderCost(main); }
+    else if (h === "forms") { tab = "forms"; renderForms(main); }
     else if (h === "wp") { tab = "wp"; renderWP(main, null); }
     else if (chById(h)) { tab = "wp"; renderWP(main, h); }
     else if (secToCh[h]) { tab = "wp"; renderWP(main, secToCh[h], h); }
@@ -1305,7 +1349,7 @@
     $$(".tabs a").forEach((a) => a.setAttribute("aria-current", a.dataset.tab === tab ? "page" : "false"));
     if (tab !== "wp" && !/^case-\d+$/.test(h) && h !== "cases-issues") window.scrollTo(0, 0);
     observe(main);
-    document.title = { home: "태양광 사업관리 백서", wp: "백서 · 태양광 사업관리", cases: "사례집 · 태양광 사업관리", cost: "원가 분석 · 태양광 사업관리" }[tab];
+    document.title = { home: "태양광 사업관리 백서", wp: "백서 · 태양광 사업관리", cases: "사례집 · 태양광 사업관리", cost: "원가 분석 · 태양광 사업관리", forms: "현장 양식 · 태양광 사업관리" }[tab];
   }
   window.addEventListener("hashchange", route);
 
