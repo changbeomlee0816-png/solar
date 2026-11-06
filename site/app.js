@@ -1121,7 +1121,12 @@
           <td class="n">${man(r.quote)}</td><td class="n">${man(r.market)}</td><td class="n" style="color:${r.excess > 0 ? "var(--bad)" : "var(--cell)"}">${r.excess > 0 ? "+" : ""}${man(r.excess)}</td>
           <td><div style="display:flex;gap:8px;align-items:center"><span class="mono" style="width:52px;text-align:right">${r.rate > 0 ? "+" : ""}${pct(r.rate)}</span>${bar(r.rate)}</div></td><td class="n">${man(r.after)}</td><td><span class="verdict v-${r.v}">${r.v}</span></td></tr>`).join("")}
         <tr><td class="key">합계 (비교 가능 항목)</td><td></td><td></td><td class="n"><b>${man(tot.quote)}</b></td><td class="n"><b>${man(tot.market)}</b></td><td class="n" style="color:var(--bad)"><b>+${man(tot.excess)}</b></td><td><span class="mono">+${pct(tot.rate)}</span></td><td class="n"><b>${man(tot.after)}</b></td><td><span class="verdict v-${tot.v}">${tot.v}</span></td></tr>
-        </tbody></table></div><p class="from">금액 단위 만원 · 견적 단가는 ${scope === "all" ? "3개 현장 가중 평균" : "해당 현장 견적서 기준"}</p>`;
+        </tbody></table></div>
+        <div class="cost-cards">${rows.slice().sort((a, b) => scope === "all" ? b.excess - a.excess : 0).map((r) => `<div class="cc"><div class="cc-h"><b>${esc(r.key)}</b><span class="verdict v-${r.v}">${r.v}</span></div>
+          <div class="cc-n"><div><span>견적</span><b>${man(r.quote)}</b></div><div><span>시장 기준</span><b>${man(r.market)}</b></div><div><span>초과율</span><b style="color:${r.rate > 0 ? "var(--bad)" : "var(--cell)"}">${r.rate > 0 ? "+" : ""}${pct(r.rate)}</b></div></div>${bar(r.rate)}
+          <div class="cc-s">단가 ${fmt(r.unitQuote, r.unit === "원/W" ? 1 : 0)} → 기준 ${fmt(r.unitBasis, r.unit === "원/W" ? 1 : 0)} ${r.unit} · 마진 반영 후 ${man(r.after)}</div></div>`).join("")}
+          <div class="cc total"><div class="cc-h"><b>합계 (비교 가능 항목)</b><span class="verdict v-${tot.v}">${tot.v}</span></div><div class="cc-n"><div><span>견적</span><b>${man(tot.quote)}</b></div><div><span>시장 기준</span><b>${man(tot.market)}</b></div><div><span>초과</span><b style="color:var(--bad)">+${man(tot.excess)}</b></div></div></div></div>
+        <p class="from">금액 단위 만원 · 견적 단가는 ${scope === "all" ? "3개 현장 가중 평균" : "해당 현장 견적서 기준"}</p>`;
       // 노무 막대
       const labRows = R.sites.flatMap((s) => [["구조물", s], ["전기", s]].map(([w, s2]) => {
         const a = (s2.lab[w] || {}); const q = (s2.byStd[w === "구조물" ? "구조·모듈 설치 노무" : "전기 노무"] || 0);
@@ -1330,6 +1335,17 @@
     if (e.target.closest("[data-unlock], .lockph, #unlock")) { e.preventDefault(); askPassword(); }
   });
 
+  // 화면보다 넓은 표 · 그림에 '밀어서 보기' 표시
+  function markScrollable(root) {
+    const mark = () => $$(".tbl, .scroll-x", root).forEach((el) => {
+      const can = el.scrollWidth > el.clientWidth + 4;
+      el.classList.toggle("can-scroll", can);
+      if (can && !el.dataset.sw) { el.dataset.sw = 1; el.addEventListener("scroll", () => el.classList.toggle("scrolled", el.scrollLeft > 8), { passive: true }); }
+    });
+    requestAnimationFrame(mark); setTimeout(mark, 600);
+    if (!markScrollable.bound) { markScrollable.bound = true; window.addEventListener("resize", () => mark(), { passive: true }); }
+  }
+
   /* ---------- 라우터 ---------- */
   let cleanup = [];
   function route() {
@@ -1349,6 +1365,7 @@
     $$(".tabs a").forEach((a) => a.setAttribute("aria-current", a.dataset.tab === tab ? "page" : "false"));
     if (tab !== "wp" && !/^case-\d+$/.test(h) && h !== "cases-issues") window.scrollTo(0, 0);
     observe(main);
+    markScrollable(main);
     document.title = { home: "태양광 사업관리 백서", wp: "백서 · 태양광 사업관리", cases: "사례집 · 태양광 사업관리", cost: "원가 분석 · 태양광 사업관리", forms: "현장 양식 · 태양광 사업관리" }[tab];
   }
   window.addEventListener("hashchange", route);
