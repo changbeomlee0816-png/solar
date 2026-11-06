@@ -294,6 +294,83 @@
     </svg>`;
   }
 
+
+  /* ---------- 실제 현장 사진으로 그린 그림 ---------- */
+  // 시공완료보고서 사진대지에서 장비별로 고른 사진 (없으면 그림 아이콘)
+  const EQ = {
+    module: { src: "rep/r1-21-000.jpg", t: "태양광 모듈", s: "지붕 위 패널이 햇빛으로 전기를 만듭니다", tag: "직류 DC" },
+    inverter: { src: "rep/r3-26-001.jpg", t: "인버터", s: "직류를 공장에서 쓰는 교류로 바꿉니다", tag: "DC → AC" },
+    board: { src: "rep/r2-24-003.jpg", t: "수배전반", s: "공장 전기의 입구. 차단기로 태양광을 연결합니다", tag: "교류 AC" },
+    factory: { src: "rep/r1-05-000.jpg", t: "공장 설비", s: "만든 전기를 공장이 먼저 씁니다", tag: "자가소비" },
+    grid: { src: "rep/r2-05-000.jpg", t: "한전 전기", s: "모자라는 만큼만 한전에서 받습니다", tag: "부족분" },
+    rpr: { src: "rep/r2-26-002.jpg", t: "역전력계전기", s: "남는 전기가 한전 쪽으로 거꾸로 가면 끊습니다", tag: "역송 차단" },
+    structure: { src: "rep/r1-20-000.jpg", t: "구조물", s: "모듈을 지붕에 고정하는 레일" },
+    combiner: { src: "rep/r1-22-002.jpg", t: "접속반 · 분전함", s: "여러 줄의 전선을 모읍니다" },
+    cable: { src: "rep/r1-25-000.jpg", t: "케이블", s: "모듈 → 인버터 → 수배전반을 잇습니다" },
+    monitor: { src: "rep/r3-27-002.jpg", t: "모니터링", s: "발전량을 화면 · 원격으로 확인" },
+    safety: { src: "rep/r1-21-003.jpg", t: "안전시설", s: "안전난간 · 고정 사다리" },
+    roof: { src: "rep/r2-04-000.jpg", t: "지붕 태양광", s: "" },
+    roof2: { src: "rep/r3-04-000.jpg", t: "지붕 태양광", s: "" },
+  };
+  const SVGI = {
+    money: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#12a36b"/><circle cx="24" cy="24" r="15.5" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2"/><path d="M14 17l4 14 6-12 6 12 4-14M12 23h24M12 27h24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    tower: '<svg viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="10" fill="#e8504f"/><path d="M24 14v22M18 36l6-22 6 22M20 28h8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 15a12 12 0 0 0 0 12M33 15a12 12 0 0 1 0 12" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>',
+    office: '<svg viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="10" fill="#3266ff"/><path d="M16 36V14h16v22M12 36h24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 19h2M26 19h2M20 24h2M26 24h2M20 29h2M26 29h2" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>',
+    block: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#c43b3b"/><path d="M16 16l16 16M32 16L16 32" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>',
+    doc: '<svg viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="10" fill="#0f1b33"/><path d="M17 13h10l5 5v17H17z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><path d="M21 24h8M21 29h6" stroke="#ffc94a" stroke-width="2.4" stroke-linecap="round"/></svg>',
+  };
+  const eqImg = (k) => `<img src="${EQ[k].src}" alt="${esc(EQ[k].t)} 실제 사진" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()">`;
+  function photoFlow() {
+    const card = (k, n) => `<figure class="pf-card" data-node="${k}"><div class="pf-img">${eqImg(k)}<span class="pf-n">${n}</span><span class="pf-tag ${k === "module" || k === "inverter" ? "dc" : "ac"}">${EQ[k].tag}</span></div>
+      <figcaption><b>${EQ[k].t}</b><span>${EQ[k].s}</span></figcaption></figure>`;
+    const link = (cls, lab) => `<div class="pf-link ${cls}" aria-hidden="true"><i></i><em>${lab}</em></div>`;
+    return `<div class="pflow">
+      <div class="pf-chain">${card("module", 1)}${link("dc", "직류")}${card("inverter", 2)}${link("ac", "교류")}${card("board", 3)}${link("ac", "교류")}${card("factory", 4)}</div>
+      <div class="pf-grid">
+        <div class="pf-side" data-node="grid"><div class="pf-thumb">${eqImg("grid")}</div><div><b>한전 전기가 들어오는 길</b><span>공장이 쓰는 만큼 태양광이 모자라면 한전 전기가 수배전반으로 함께 들어옵니다. 요금은 받은 만큼만 냅니다.</span></div><div class="pf-arrow in" aria-hidden="true">한전 → 공장</div></div>
+        <div class="pf-side bad" data-node="rpr"><div class="pf-thumb">${eqImg("rpr")}</div><div><b>남는 전기는 막아요</b><span>휴일처럼 공장이 덜 쓸 때 남는 전기가 한전 쪽으로 거꾸로 가면 역전력계전기가 태양광 차단기를 끊습니다.</span></div><div class="pf-arrow out" aria-hidden="true">공장 → 한전 ✕</div></div>
+      </div>
+      <div class="pf-minis">${["structure", "combiner", "cable", "monitor", "safety"].map((k) => `<div class="pf-mini" data-node="${k}"><div class="pf-thumb">${eqImg(k)}</div><b>${EQ[k].t}</b><span>${EQ[k].s}</span></div>`).join("")}</div>
+    </div>`;
+  }
+  // 사업 유형: 사진과 그림으로 보는 단계별 이야기
+  const STORIES = {
+    "자가소비 (갑)": [
+      ["e", "roof", "지붕 태양광이 전기를 만든다", "설비는 공장(수용가) 소유"],
+      ["e", "factory", "공장이 먼저 쓴다", "만든 전기는 공장 설비로 바로 들어갑니다"],
+      ["e", "grid", "모자라면 한전에서 받는다", "흐린 날 · 밤에는 평소처럼 한전 전기"],
+      ["x", "rpr", "남는 전기는 한전으로 못 간다", "역전력계전기가 거꾸로 가는 전기를 차단"],
+      ["m", "money", "전기요금이 줄어든다", "한전에는 받은 만큼만 요금을 냅니다"],
+    ],
+    "자가소비 + 상계거래": [
+      ["e", "roof", "지붕 태양광이 전기를 만든다", "설비는 공장(수용가) 소유"],
+      ["e", "factory", "공장이 먼저 쓴다", "만든 전기는 공장 설비로 바로 들어갑니다"],
+      ["e", "grid", "남는 전기는 한전으로 보낸다", "양방향 계량기로 보낸 양을 잽니다"],
+      ["m", "money", "보낸 만큼 요금에서 뺀다 (상계)", "모자랄 때 받은 전기와 맞바꿔 계산"],
+      ["d", "doc", "고압 수전이면 설비가 더 필요", "MOF · VCB · 역전력계전기 등 약 8,000만원 (하임 사례) — 영업 전 관할 한전 확인"],
+    ],
+    "직접PPA": [
+      ["e", "roof2", "SPC가 지붕을 빌려 설비를 짓는다", "20년 임차, 설비는 SPC(발전사업자) 소유"],
+      ["e", "factory", "공장이 그 전기를 산다", "KPX 계량기로 쓴 양을 잽니다"],
+      ["m", "tower", "KT가 판매를 중개한다", "공장은 KT에 전기 요금을 냅니다"],
+      ["m", "office", "SPC가 판매 대금을 받는다", "KT 수수료를 뺀 금액"],
+      ["d", "doc", "발전사업이라 허가가 필요", "발전사업허가(SPC 명의) — 약 60영업일, 서류 준비가 일정을 좌우"],
+    ],
+    "BAPV · BIPV": [
+      ["e", "factory", "건물 벽면 · 지붕에 붙인다", "BAPV는 부착형, BIPV는 건물 자재 일체형"],
+      ["e", "board", "공장이 쓴다", "소용량 인버터를 따로 설계"],
+      ["e", "grid", "모자라면 한전에서 받는다", "자가소비와 같은 방식"],
+      ["d", "doc", "수용가 요구로 설계가 바뀌기 쉽다", "요구사항을 서면으로 확정 (협동조합 사례)"],
+    ],
+  };
+  function typeStory(name) {
+    const st = STORIES[name] || STORIES["자가소비 (갑)"];
+    const KIND = { e: ["전기", "e"], m: ["돈", "m"], x: ["차단", "x"], d: ["확인", "d"] };
+    return `<ol class="story">${st.map(([k, img, t, s], i) => {
+      const pic = EQ[img] ? `<span class="st-pic">${eqImg(img)}</span>` : `<span class="st-pic ic">${SVGI[img] || SVGI.doc}</span>`;
+      return `<li class="st ${KIND[k][1]}" style="animation-delay:${i * 90}ms">${pic}<div class="st-b"><span class="st-k">${KIND[k][0]}</span><b>${t}</b><span>${s}</span></div></li>`;
+    }).join("")}</ol>`;
+  }
   function heroPanel() {
     const num = (v) => parseFloat(String(v || "").replace(/[^\d.]/g, "")) || 0;
     const kwp = REP.reduce((s, r) => s + (r.kwp || 0), 0);
@@ -344,7 +421,7 @@
       <text x="640" y="186" class="t-sub">태양광 전기가 한전 쪽으로</text><text x="640" y="200" class="t-sub">거꾸로 흐르지 않게 차단</text>
     </svg>`;
   }
-  const NODE_OF = { "태양광 모듈": "module", "구조물": "structure", "접속반": "combiner", "인버터": "inverter", "수배전반": "board", "역전력계전기": "rpr", "케이블": "wire", "모니터링": "monitor", "안전시설": "structure" };
+  const NODE_OF = { "태양광 모듈": "module", "구조물": "structure", "접속반": "combiner", "인버터": "inverter", "수배전반": "board", "역전력계전기": "rpr", "케이블": "cable", "모니터링": "monitor", "안전시설": "safety" };
 
   const TYPE_DIAG = {
     "자가소비 (갑)": { nodes: { pv: [40, 60, "지붕 태양광", "수용가 소유"], f: [300, 60, "공장", "자체 소비"], k: [300, 170, "한전", "부족분 공급"] },
@@ -480,18 +557,17 @@
     <div class="wrap">
     ${partsT ? `<section class="sec reveal" id="flow">
       <div class="sec-head"><div><div class="eyebrow">1장 · 태양광 발전 한눈에 보기</div><h2>전기는 이렇게 흐릅니다</h2>
-      <p>모듈이 만든 직류(DC)를 인버터가 교류(AC)로 바꾸고, 수배전반을 거쳐 공장 설비로 갑니다. 장비를 누르면 하는 일과 현장 확인 포인트가 보입니다.</p></div>
+      <p>2026 군산 현장에서 찍은 실제 장비 사진입니다. 지붕의 모듈이 만든 전기가 인버터와 수배전반을 지나 공장 설비로 갑니다. 아래 장비 이름을 누르면 하는 일과 현장 확인 포인트가 보입니다.</p></div>
       <a class="from" href="#s1-2">백서 1.2 구성 장비 →</a></div>
-      <div class="flow-grid">
-        <div class="card flow-card"><div style="overflow-x:auto">${flowDiagram()}</div>
-          <div class="legend"><span><i style="background:var(--sun)"></i>직류 DC</span><span><i style="background:var(--cell)"></i>교류 AC</span><span><i style="background:var(--bad)"></i>역송 차단 신호</span></div>
-          <div id="part-info" class="note" style="margin-top:12px"></div></div>
-        <div class="parts-list" id="parts">${bodyRows(partsT).map((r, i) => `<button type="button" class="part-item" data-i="${i}" data-node="${NODE_OF[r[0]] || ""}"><span class="n">${String(i + 1).padStart(2, "0")}</span><span><b>${esc(r[0])}</b><span>${esc(r[1])}</span></span></button>`).join("")}</div>
+      <div class="flow-stack">
+        <div class="card flow-card">${photoFlow()}
+          <div id="part-info" class="note part-info"></div></div>
+        <div class="parts-list parts-row" id="parts">${bodyRows(partsT).map((r, i) => `<button type="button" class="part-item" data-i="${i}" data-node="${NODE_OF[r[0]] || ""}"><span class="n">${String(i + 1).padStart(2, "0")}</span><span><b>${esc(r[0])}</b><span>${esc(r[1])}</span></span></button>`).join("")}</div>
       </div></section>` : ""}
 
     ${typesT ? `<section class="sec reveal" id="types">
       <div class="sec-head"><div><div class="eyebrow">2장 · 사업 유형</div><h2>누가 소유하고, 누가 쓰고, 누구에게 내는가</h2>
-      <p>사업 유형은 세 질문으로 갈립니다. 유형을 고르면 전기(주황)와 돈(초록)의 흐름이 바뀝니다.</p></div><a class="from" href="#s2-1">백서 2.1 사업 유형 비교 →</a></div>
+      <p>사업 유형은 세 질문으로 갈립니다. 유형을 고르면 전기(주황)와 돈(초록)이 어떻게 오가는지 순서대로 보여줍니다.</p></div><a class="from" href="#s2-1">백서 2.1 사업 유형 비교 →</a></div>
       <div class="types">
         <div class="type-tabs" id="type-tabs">${typesT.rows[0].slice(1).map((c, i) => { const name = plain(c.html); const site = (bodyRows(typesT).find((r) => r[0].includes("2026")) || [])[i + 1] || ""; return `<button type="button" class="type-tab" data-i="${i}" aria-pressed="${i === 0}"><b>${esc(name)}</b><small>${esc(site)}</small></button>`; }).join("")}</div>
         <div class="card type-detail" id="type-detail"></div>
@@ -508,7 +584,7 @@
       <div class="sec-head"><div><div class="eyebrow">4장 · 시공 공정 따라가기</div><h2>지붕 위에서 일어나는 일, 순서대로</h2>
       <p>덮이면 다시 볼 수 없는 부분(관통부 방수, 접지선, 결선)은 반드시 사진으로 남깁니다.</p></div><a class="from" href="#ch4">백서 4장 →</a></div>
       <div class="build">
-        <div class="card build-stage"><div class="build-photo" id="b-photo"><span class="no" id="b-no"></span><span class="cap" id="b-cap"></span></div>${buildArt()}
+        <div class="card build-stage"><div class="build-photo" id="b-photo"><span class="no" id="b-no"></span><span class="cap" id="b-cap"></span></div><div class="b-strip" id="b-strip"></div>
           <div class="build-ctrl"><button class="btn" type="button" id="b-prev" aria-label="이전 공정">‹</button><button class="btn" type="button" id="b-play">❚❚ 일시정지</button><button class="btn" type="button" id="b-next" aria-label="다음 공정">›</button><div class="prog"><i id="b-prog"></i></div><span class="mono" id="b-count" style="font-size:12px;color:var(--ink-3)"></span></div></div>
         <div class="card build-info" id="build-info"></div>
       </div></section>` : ""}
@@ -546,11 +622,18 @@
       const pick = (i) => {
         $$(".part-item", root).forEach((b) => b.classList.toggle("on", +b.dataset.i === i));
         const node = NODE_OF[rows[i][0]];
-        $$("[data-node] .nd", root).forEach((r) => r.classList.toggle("hot", r.parentNode.dataset.node === node));
-        $$("[data-wire]", root).forEach((w) => w.classList.toggle("hot", node === "wire"));
+        $$(".pflow [data-node]", root).forEach((r) => r.classList.toggle("hot", r.dataset.node === node));
+        $$(".pf-link", root).forEach((w) => w.classList.toggle("hot", node === "cable"));
         info.innerHTML = `<b>${esc(rows[i][0])}</b> — ${esc(rows[i][1])}<br><span style="color:var(--ink-3)">현장에서 확인할 것:</span> ${esc(rows[i][2])}`;
       };
       $("#parts", root).addEventListener("click", (e) => { const b = e.target.closest(".part-item"); if (b) pick(+b.dataset.i); });
+      $(".pflow", root).addEventListener("click", (e) => {
+        const c = e.target.closest("[data-node]"); if (!c) return;
+        const k = c.dataset.node, i = rows.findIndex((r) => NODE_OF[r[0]] === k || (k === "combiner" && r[0] === "접속반"));
+        if (i >= 0) { pick(i); return; }
+        $$(".pflow [data-node]", root).forEach((r) => r.classList.toggle("hot", r === c));
+        info.innerHTML = `<b>${esc(EQ[k].t)}</b> — ${esc(EQ[k].s)}`;
+      });
       pick(0);
     }
     // 사업 유형
@@ -560,8 +643,8 @@
       const det = $("#type-detail", root);
       const pick = (i) => {
         $$(".type-tab", root).forEach((b) => b.setAttribute("aria-pressed", +b.dataset.i === i));
-        det.innerHTML = `<div style="overflow-x:auto">${typeDiagram(names[i])}</div>
-          <div class="legend"><span><i style="background:var(--sun)"></i>전기</span><span><i style="background:var(--leaf)"></i>돈</span></div>
+        det.innerHTML = `${typeStory(names[i])}
+          <div class="legend"><span><i style="background:var(--sun)"></i>전기</span><span><i style="background:var(--leaf)"></i>돈</span><span><i style="background:var(--bad)"></i>차단</span><span><i style="background:var(--ink-2)"></i>확인할 것</span></div>
           <dl class="kv">${rows.map((r) => `<dt>${esc(r[0])}</dt><dd>${esc(r[i + 1])}</dd>`).join("")}</dl>`;
       };
       $("#type-tabs", root).addEventListener("click", (e) => { const b = e.target.closest(".type-tab"); if (b) pick(+b.dataset.i); });
@@ -593,25 +676,38 @@
     // 시공 공정
     if (proc.length) {
       const info = $("#build-info", root);
-      const layers = $$(".layer", root);
       let cur = 0, timer = null;
+      // 공정별 실제 현장 사진 (시공완료보고서 사진대지)
+      const KEYS = [["지붕", "강판"], ["안전"], ["구조물"], ["구조물", "모듈"], ["전기"], ["계통", "전기"], ["계통", "연계", "전기"]];
+      const used = new Set();
+      const PICK = ["rep/r2-20-002.jpg", "rep/r1-21-003.jpg", "rep/r1-20-000.jpg", "rep/r3-22-002.jpg", "rep/r3-26-000.jpg", "rep/r2-27-001.jpg", "rep/r3-27-000.jpg"];
+      const findPh = (src) => { for (const r of REP) { const ph = (r.photos || []).find((x) => x.src === src); if (ph) return { ...ph, site: r.site }; } return null; };
+      const stepPh = proc.map((p, k) => {
+        const fixed = PICK[k] && findPh(PICK[k]);
+        if (fixed) { used.add(fixed.src); return fixed; }
+        const keys = KEYS[Math.min(k, KEYS.length - 1)];
+        const pool = REP.flatMap((r) => (r.photos || []).filter((ph) => keys.some((x) => ph.cap.includes(x))).map((ph) => ({ ...ph, site: r.site })));
+        const ph = pool.find((x, j) => j >= (k * 3) % Math.max(pool.length, 1) && !used.has(x.src)) || pool.find((x) => !used.has(x.src)) || pool[0];
+        if (ph) used.add(ph.src);
+        return ph;
+      });
+      const strip = $("#b-strip", root);
+      if (strip) strip.innerHTML = proc.map((p, k) => `<button type="button" data-k="${k}" aria-label="${esc(p.title)}">${stepPh[k] ? `<img src="${stepPh[k].src}" alt="" loading="lazy">` : ""}<span><b>${k + 1}</b>${esc(p.title.replace(/^[①-⑨\s]+/, "").replace(/\s*\(.*\)/, "").replace(/ · ⑧.*/, ""))}</span></button>`).join("");
+      if (strip) strip.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { stop(); show(+b.dataset.k); } });
       const show = (i) => {
         cur = (i + proc.length) % proc.length;
-        layers.forEach((l) => { const n = +l.dataset.l; l.classList.toggle("off", n > cur + 1); l.classList.toggle("now", n === cur + 1 || (cur === proc.length - 1 && n >= cur + 1)); });
+        $$("#b-strip button", root).forEach((b) => { const on = +b.dataset.k === cur; b.classList.toggle("on", on); if (on && b.parentNode.scrollWidth > b.parentNode.clientWidth) b.parentNode.scrollTo({ left: b.offsetLeft - 16, behavior: "smooth" }); });
         const p = proc[cur]; const t = p.blocks.find((b) => b.t === "table");
         const kv = t ? t.rows.map(cellsText) : [];
         info.innerHTML = `<div class="eyebrow">공정 ${cur + 1} / ${proc.length}</div><h3>${esc(p.title)}</h3><dl class="kv">${kv.map((r) => `<dt>${esc(r[0])}</dt><dd>${r[0].includes("사례") ? `<span class="tag-case">사례</span> ` : ""}${esc(r[1])}</dd>`).join("")}</dl>`;
         $("#b-prog", root).style.width = ((cur + 1) / proc.length * 100) + "%";
         // 공정에 맞는 실제 현장 사진 (시공완료보고서 사진대지)
-        const KEYS = [["지붕", "강판"], ["안전"], ["구조물"], ["구조물", "모듈"], ["전기"], ["계통", "전기"], ["계통", "연계", "전기"]];
-        const keys = KEYS[Math.min(cur, KEYS.length - 1)];
-        const pool = REP.flatMap((r) => (r.photos || []).filter((ph) => keys.some((k) => ph.cap.includes(k))).map((ph) => ({ ...ph, site: r.site })));
         const box = $("#b-photo", root);
-        if (pool.length && box) {
-          const ph = pool[(cur * 3) % pool.length];
+        const ph = stepPh[cur];
+        if (ph && box) {
           const img = new Image(); img.src = ph.src; img.alt = ph.cap; img.style.opacity = "0";
           img.onload = () => { requestAnimationFrame(() => { img.style.opacity = "1"; img.classList.add("in"); }); $$("img", box).forEach((o) => { if (o !== img) setTimeout(() => o.remove(), 650); }); };
-          box.insertBefore(img, box.firstChild);
+          box.insertBefore(img, $("#b-no", root));
           $("#b-cap", root).textContent = `실제 현장 · ${norm(ph.site)} · ${ph.cap}`;
           $("#b-no", root).textContent = `STEP ${cur + 1}`;
         } else if (box) box.hidden = true;
