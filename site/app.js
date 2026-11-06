@@ -319,7 +319,14 @@
     block: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#c43b3b"/><path d="M16 16l16 16M32 16L16 32" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>',
     doc: '<svg viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="10" fill="#0f1b33"/><path d="M17 13h10l5 5v17H17z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><path d="M21 24h8M21 29h6" stroke="#ffc94a" stroke-width="2.4" stroke-linecap="round"/></svg>',
   };
-  const eqImg = (k) => `<img src="${EQ[k].src}" alt="${esc(EQ[k].t)} 실제 사진" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()">`;
+  // 장비 일러스트 (site/illust.js) — 없으면 사진으로
+  const ILLMAP = window.ILL ? {
+    module: () => ILL.module(), inverter: () => ILL.inverter(), board: () => ILL.board(), factory: () => ILL.plant(), grid: () => ILL.pole(), rpr: () => ILL.relay(),
+    structure: () => ILL.structure(), combiner: () => ILL.combiner(), cable: () => ILL.cable(), monitor: () => ILL.monitor(), safety: () => ILL.safety(),
+    roof: () => ILL.module(), roof2: () => ILL.plant(), money: () => ILL.coin(), tower: () => ILL.office("#e8504f", "", true), office: () => ILL.office("#3266ff", ""),
+    doc: () => ILL.documentPaper(), bapv: () => ILL.bapv(),
+  } : {};
+  const eqImg = (k) => ILLMAP[k] ? ILLMAP[k]() : (EQ[k] ? `<img src="${EQ[k].src}" alt="${esc(EQ[k].t)}" loading="lazy">` : "");
   function photoFlow() {
     const card = (k, n) => `<figure class="pf-card" data-node="${k}"><div class="pf-img">${eqImg(k)}<span class="pf-n">${n}</span><span class="pf-tag ${k === "module" || k === "inverter" ? "dc" : "ac"}">${EQ[k].tag}</span></div>
       <figcaption><b>${EQ[k].t}</b><span>${EQ[k].s}</span></figcaption></figure>`;
@@ -357,7 +364,7 @@
       ["d", "doc", "발전사업이라 허가가 필요", "발전사업허가(SPC 명의) — 약 60영업일, 서류 준비가 일정을 좌우"],
     ],
     "BAPV · BIPV": [
-      ["e", "factory", "건물 벽면 · 지붕에 붙인다", "BAPV는 부착형, BIPV는 건물 자재 일체형"],
+      ["e", "bapv", "건물 벽면 · 지붕에 붙인다", "BAPV는 부착형, BIPV는 건물 자재 일체형"],
       ["e", "board", "공장이 쓴다", "소용량 인버터를 따로 설계"],
       ["e", "grid", "모자라면 한전에서 받는다", "자가소비와 같은 방식"],
       ["d", "doc", "수용가 요구로 설계가 바뀌기 쉽다", "요구사항을 서면으로 확정 (협동조합 사례)"],
@@ -367,7 +374,7 @@
     const st = STORIES[name] || STORIES["자가소비 (갑)"];
     const KIND = { e: ["전기", "e"], m: ["돈", "m"], x: ["차단", "x"], d: ["확인", "d"] };
     return `<ol class="story">${st.map(([k, img, t, s], i) => {
-      const pic = EQ[img] ? `<span class="st-pic">${eqImg(img)}</span>` : `<span class="st-pic ic">${SVGI[img] || SVGI.doc}</span>`;
+      const pic = ILLMAP[img] || EQ[img] ? `<span class="st-pic">${eqImg(img)}</span>` : `<span class="st-pic ic">${SVGI[img] || SVGI.doc}</span>`;
       return `<li class="st ${KIND[k][1]}" style="animation-delay:${i * 90}ms">${pic}<div class="st-b"><span class="st-k">${KIND[k][0]}</span><b>${t}</b><span>${s}</span></div></li>`;
     }).join("")}</ol>`;
   }
@@ -557,7 +564,7 @@
     <div class="wrap">
     ${partsT ? `<section class="sec reveal" id="flow">
       <div class="sec-head"><div><div class="eyebrow">1장 · 태양광 발전 한눈에 보기</div><h2>전기는 이렇게 흐릅니다</h2>
-      <p>2026 군산 현장에서 찍은 실제 장비 사진입니다. 지붕의 모듈이 만든 전기가 인버터와 수배전반을 지나 공장 설비로 갑니다. 아래 장비 이름을 누르면 하는 일과 현장 확인 포인트가 보입니다.</p></div>
+      <p>지붕의 모듈이 만든 전기가 인버터와 수배전반을 지나 공장 설비로 갑니다. 장비 그림을 누르면 하는 일과 현장 확인 포인트가 보입니다.</p></div>
       <a class="from" href="#s1-2">백서 1.2 구성 장비 →</a></div>
       <div class="flow-stack">
         <div class="card flow-card">${photoFlow()}
@@ -692,7 +699,8 @@
         return ph;
       });
       const strip = $("#b-strip", root);
-      if (strip) strip.innerHTML = proc.map((p, k) => `<button type="button" data-k="${k}" aria-label="${esc(p.title)}">${stepPh[k] ? `<img src="${stepPh[k].src}" alt="" loading="lazy">` : ""}<span><b>${k + 1}</b>${esc(p.title.replace(/^[①-⑨\s]+/, "").replace(/\s*\(.*\)/, "").replace(/ · ⑧.*/, ""))}</span></button>`).join("");
+      const scene = (k, o = {}) => (window.ILL ? ILL.factory({ step: k, label: proc[k].title, ...o }) : "");
+      if (strip) strip.innerHTML = proc.map((p, k) => `<button type="button" data-k="${k}" aria-label="${esc(p.title)}"><span class="b-mini">${scene(k, { highlight: false })}</span><span><b>${k + 1}</b>${esc(p.title.replace(/^[①-⑨\s]+/, "").replace(/\s*\(.*\)/, "").replace(/ · ⑧.*/, ""))}</span></button>`).join("");
       if (strip) strip.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { stop(); show(+b.dataset.k); } });
       const show = (i) => {
         cur = (i + proc.length) % proc.length;
@@ -703,14 +711,14 @@
         $("#b-prog", root).style.width = ((cur + 1) / proc.length * 100) + "%";
         // 공정에 맞는 실제 현장 사진 (시공완료보고서 사진대지)
         const box = $("#b-photo", root);
-        const ph = stepPh[cur];
-        if (ph && box) {
-          const img = new Image(); img.src = ph.src; img.alt = ph.cap; img.style.opacity = "0";
-          img.onload = () => { requestAnimationFrame(() => { img.style.opacity = "1"; img.classList.add("in"); }); $$("img", box).forEach((o) => { if (o !== img) setTimeout(() => o.remove(), 650); }); };
-          box.insertBefore(img, $("#b-no", root));
-          $("#b-cap", root).textContent = `실제 현장 · ${norm(ph.site)} · ${ph.cap}`;
+        if (box && window.ILL) {
+          const holder = document.createElement("div"); holder.className = "b-scene"; holder.innerHTML = scene(cur);
+          box.insertBefore(holder, $("#b-no", root));
+          requestAnimationFrame(() => holder.classList.add("in"));
+          $$(".b-scene", box).forEach((o) => { if (o !== holder) setTimeout(() => o.remove(), 500); });
+          $("#b-cap", root).textContent = proc[cur].title.replace(/^[①-⑨\s]+/, "");
           $("#b-no", root).textContent = `STEP ${cur + 1}`;
-        } else if (box) box.hidden = true;
+        }
         $("#b-count", root).textContent = `${cur + 1}/${proc.length}`;
       };
       const playBtn = $("#b-play", root);

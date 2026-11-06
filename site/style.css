@@ -1143,3 +1143,26 @@ figure.fig img { border-radius: 16px; box-shadow: var(--shadow); }
 
 .pflow [data-node] { cursor: pointer; }
 .parts-row { display: none !important; }
+
+/* ===================== 아이소메트릭 일러스트 ===================== */
+.ill { display: block; width: 100%; height: 100%; }
+.pf-img, .pf-thumb, .st-pic { background: #eef3fb; }
+.pf-img .ill, .pf-thumb .ill, .st-pic .ill { position: absolute; inset: 0; }
+.pf-thumb, .st-pic { position: relative; }
+.pf-card:hover .pf-img .ill { transform: scale(1.04); }
+.pf-img .ill { transition: transform .6s; }
+.st-pic { background: #eef3fb; }
+.st-pic .ill { transform: scale(1.12); }
+.build-photo { aspect-ratio: 3 / 2; background: #eef3fb; }
+.b-scene { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; }
+.b-scene.in { opacity: 1; }
+.b-scene .ill-new { animation: illnew 1.6s ease-in-out infinite; }
+@keyframes illnew { 50% { opacity: .55; } }
+.ill-flow { animation: illflow 1s linear infinite; }
+@keyframes illflow { to { stroke-dashoffset: -16; } }
+.b-mini { display: block; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: #eef3fb; opacity: .6; transition: all .3s; outline: 3px solid transparent; outline-offset: 2px; }
+.b-mini .ill { transform: scale(1.35); }
+.b-strip button.on .b-mini, .b-strip button:hover .b-mini { opacity: 1; }
+.b-strip button.on .b-mini { outline-color: var(--sun); }
+.build-photo .cap { font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .ill-flow, .b-scene .ill-new { animation: none; } }

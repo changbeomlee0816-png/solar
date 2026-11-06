@@ -136,7 +136,7 @@ def main():
     html = (SITE / "index.template.html").read_text(encoding="utf-8")
     html = html.replace("/*__STYLE__*/", (SITE / "style.css").read_text(encoding="utf-8"))
     html = html.replace("/*__DATA__*/", blob)
-    html = html.replace("/*__APP__*/", (SITE / "app.js").read_text(encoding="utf-8"))
+    html = html.replace("/*__APP__*/", (SITE / "illust.js").read_text(encoding="utf-8") + "\n" + (SITE / "app.js").read_text(encoding="utf-8"))
     if a.password:
         # 일반 웹 호스팅용: 완전한 HTML 문서로 감싼다 (Artifact는 자체 골격을 붙이므로 감싸지 않음)
         head, body = html.split("</style>", 1)
