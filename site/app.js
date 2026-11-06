@@ -3,9 +3,11 @@
 (() => {
   "use strict";
   const D = window.__DATA__ || {};
-  const WP = D.wp || { meta: {}, parts: [] };
-  const COST = D.cost || null;
-  const REP = D.reports || [];
+  let WP = D.wp || { meta: {}, parts: [] };
+  let COST = D.cost || null;
+  let REP = D.reports || [];
+  const VAULT = D.vault || null;
+  let unlocked = !VAULT;
   const BUILT = D.built || "";
   const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -38,12 +40,54 @@
     .replace(/★/g, '<span class="tag-check">★</span>');
 
   /* ---------- 백서 색인 ---------- */
-  const CH = [];
-  const secToCh = {};
-  WP.parts.forEach((p, pi) => p.chapters.forEach((c) => {
-    CH.push({ p, pi, c });
-    (c.sections || []).forEach((s) => { secToCh[s.id] = c.id; });
-  }));
+  let CH = [];
+  let secToCh = {};
+  function indexWP() {
+    CH = []; secToCh = {};
+    WP.parts.forEach((p, pi) => p.chapters.forEach((c) => {
+      CH.push({ p, pi, c });
+      (c.sections || []).forEach((s) => { secToCh[s.id] = c.id; });
+    }));
+  }
+  indexWP();
+  const pcolor = (pi) => `var(--p${Math.min(pi, 5)})`;
+  // 장 번호 → 아이콘 (선 아이콘, 24px 그리드)
+  const IC = {
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+    flow: '<circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.5 6h9M6.5 8l4 8M17.5 8l-4 8"/>',
+    steps: '<path d="M3 20h5v-5h5v-5h5V5h3"/>',
+    roof: '<path d="M2 12l10-7 10 7"/><path d="M5 10v10h14V10"/><path d="M8 13l3-2 3 2 3-2"/>',
+    user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+    map: '<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',
+    pin: '<path d="M12 22s7-7 7-12a7 7 0 0 0-14 0c0 5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>',
+    scale: '<path d="M12 3v18M5 21h14M6 7h12M6 7l-3 7h6zM18 7l-3 7h6z"/>',
+    grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+    alert: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
+    hand: '<path d="M3 12l4-4 4 3 3-3 7 6-4 4-3-2-2 2-3-3-2 2z"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    pencil: '<path d="M4 20h4L20 8l-4-4L4 16z"/><path d="M14 6l4 4"/>',
+    doc: '<path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h8"/>',
+    box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+    tool: '<path d="M14 6a4 4 0 0 0 5 5l-9 9-3-3 9-9z"/>',
+    hard: '<path d="M3 18h18M5 18v-3a7 7 0 0 1 14 0v3M10 8V5h4v3"/>',
+    check: '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+    flag: '<path d="M5 22V3M5 3h12l-2 4 2 4H5"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/>',
+    coin: '<circle cx="12" cy="12" r="9"/><path d="M15 9a3 3 0 0 0-3-1.5c-2 0-3 1-3 2.2 0 3 6 1.6 6 4.5 0 1.3-1.2 2.3-3 2.3a3.5 3.5 0 0 1-3-1.5M12 6v12"/>',
+    contract: '<path d="M6 2h12v20H6z"/><path d="M9 7h6M9 11h6M9 15l2 2 4-4"/>',
+    people: '<circle cx="8" cy="9" r="3"/><circle cx="17" cy="9" r="3"/><path d="M2 20c.6-3 3-5 6-5s5.4 2 6 5M12 20c.6-3 2.4-5 5-5s4.4 2 5 5"/>',
+    shield: '<path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/>',
+    fire: '<path d="M12 22c4 0 7-3 7-7 0-5-5-7-5-12-3 2-4 5-4 7-1-1-2-2-2-4-2 2-3 5-3 9 0 4 3 7 7 7z"/>',
+    chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/>',
+    leaf: '<path d="M4 20c0-9 6-15 16-16-1 10-7 16-16 16z"/><path d="M4 20l9-9"/>',
+    folder: '<path d="M3 6h7l2 2h9v12H3z"/>',
+    trophy: '<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 21h8"/>',
+    star: '<path d="M12 2l3 6.6 7 .7-5.3 4.8 1.6 7L12 17.5 5.7 21l1.6-7L2 9.3l7-.7z"/>',
+    ruler: '<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',
+    shade: '<circle cx="9" cy="9" r="4"/><path d="M14 14h7v7h-7z"/><path d="M3 21l8-8"/>',
+  };
+  const CH_IC = { 1: "sun", 2: "flow", 3: "steps", 4: "roof", 5: "user", 6: "map", 7: "pin", 8: "scale", 9: "grid", 10: "alert", 11: "hand", 12: "search", 13: "pencil", 14: "doc", 15: "box", 16: "tool", 17: "hard", 18: "check", 19: "flag", 20: "gear", 21: "coin", 22: "contract", 23: "people", 24: "shield", 25: "fire", 26: "chart", 27: "leaf", 28: "folder", 29: "trophy", 30: "star", 31: "ruler", 32: "shade" };
+  const icon = (name, size = 20) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[name] || IC.doc}</svg>`;
   const chById = (id) => CH.find((x) => x.c.id === id);
   const chByNum = (n) => (CH.find((x) => x.c.num === n) || {}).c;
   const tablesOf = (ch) => (ch ? ch.blocks.filter((b) => b.t === "table") : []);
@@ -132,8 +176,12 @@
       case "note": return `<div class="note">${deco(b.html)}</div>`;
       case "caption": return `<div class="caption">${esc(b.text)}</div>`;
       case "fig": return `<figure class="fig"><img src="${b.src}" width="${b.w}" height="${b.h}" loading="lazy" alt="${esc(b.cap)}" data-lb="${b.src}" data-cap="${esc(b.cap)}">${b.cap ? `<figcaption>${esc(b.cap)}</figcaption>` : ""}</figure>`;
+      case "locked": return lockedBox(b.what);
       case "callout": {
         const k = calloutKind(b);
+        if (k === "key" && b.c.every((x) => x.t === "li")) {
+          return `<div class="keycards-title">${icon("star", 15)} 이 장의 핵심</div><div class="keycards">${b.c.map((x, i) => `<div class="keycard"><span class="kn">${i + 1}</span>${deco(x.html)}</div>`).join("")}</div>`;
+        }
         return `<div class="callout ${k}">${b.title ? `<div class="ct">${ICON[k]}${deco(esc(b.title.replace(/^★\s*/, "")))}</div>` : ""}${renderCellBlocks(b.c)}</div>`;
       }
       case "table": return renderTable(b);
@@ -142,6 +190,11 @@
     }
   }
   const renderBlocks = (blocks) => blocks.map(renderBlock).join("");
+  function lockedBox(what) {
+    const label = { chapter: "이 장은 대외비입니다", section: "이 절은 대외비입니다", callout: "대외비 박스", cost: "원가 분석은 대외비입니다" }[what] || "대외비 내용";
+    return `<div class="locked-box"><span class="li">${LOCK_SVG}</span><b>${label}</b><p>사내 인원은 열람 암호를 입력하면 바로 볼 수 있습니다.</p><button type="button" class="btn primary" data-unlock>암호 입력</button></div>`;
+  }
+  const LOCK_SVG = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>';
 
   /* ---------- 공통: 등장 모션 · 카운터 · 라이트박스 ---------- */
   let io = null;
@@ -221,7 +274,7 @@
     return `<svg class="hero-art dg" viewBox="0 0 560 360" role="img" aria-label="공장 지붕 위 태양광 어레이와 전기 흐름">
       <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--sun)" stop-opacity=".16"/><stop offset="1" stop-color="var(--sun)" stop-opacity="0"/></linearGradient></defs>
       <style>.pcell{animation:cellglow 4.2s ease-in-out infinite}@keyframes cellglow{0%,100%{fill:var(--cell)}45%{fill:color-mix(in srgb,var(--cell) 55%,#fff)}}</style>
-      <rect x="0" y="0" width="560" height="300" fill="url(#sky)"/>
+      
       <g transform="translate(78 64)"><g class="rays">${Array.from({ length: 12 }, (_, i) => `<line class="sun-ray" x1="0" y1="-38" x2="0" y2="-50" transform="rotate(${i * 30})"/>`).join("")}</g><circle class="sun-core" r="28"/></g>
       ${[0, 1, 2].map((i) => `<line x1="${104 + i * 6}" y1="${86 + i * 8}" x2="${250 + i * 90}" y2="${132 + i * 6}" class="flow dc" style="opacity:.55;animation-delay:${i * .3}s"/>`).join("")}
       <polygon class="wall" points="${A} 150,236 196,322 196,214"/>
@@ -389,20 +442,26 @@
     root.innerHTML = `
     <section class="hero"><div class="wrap">
       <div class="reveal">
-        <div class="eyebrow">${esc(m.project || "")} · ${esc(m.badge || "")}</div>
+        <div class="eyebrow">${esc(m.project || "")} · ${esc(m.org || "")}</div>
         <h1>태양광 <em>사업관리</em><br>백서</h1>
         <p class="lead">${esc(m.subtitle || "")}. 현장 단톡방 기록과 시공완료보고서, 원가 검토 결과를 한곳에서 보고 이해할 수 있게 정리했습니다.</p>
         <div class="hero-cta"><a class="btn primary" href="#ch1">처음부터 읽기</a><a class="btn" href="#cases">사례집 보기</a><a class="btn" href="#cost">원가 분석</a></div>
         <div class="stats">
-          <div class="stat"><div class="v"><span data-count="${nCh}">${nCh}</span><small>장</small></div><div class="k">백서 본문</div></div>
-          <div class="stat"><div class="v"><span data-count="${sites7}">${sites7}</span><small>곳</small></div><div class="k">현장별 분석</div></div>
-          <div class="stat"><div class="v"><span data-count="${totalKwp.toFixed(2)}" data-dec="1">${fmt(totalKwp, 1)}</span><small>kWp</small></div><div class="k">준공 ${REP.length}곳 합계</div></div>
-          <div class="stat"><div class="v"><span data-count="${nIssues}">${nIssues}</span><small>건</small></div><div class="k">이슈 · 교훈</div></div>
+          <div class="stat"><span class="ic">${icon("doc", 17)}</span><div class="v"><span data-count="${nCh}">${nCh}</span><small>장</small></div><div class="k">백서 본문</div></div>
+          <div class="stat"><span class="ic">${icon("pin", 17)}</span><div class="v"><span data-count="${sites7}">${sites7}</span><small>곳</small></div><div class="k">현장별 분석</div></div>
+          <div class="stat"><span class="ic">${icon("sun", 17)}</span><div class="v"><span data-count="${Math.round(totalKwp)}">${fmt(totalKwp)}</span><small>kWp</small></div><div class="k">준공 ${REP.length}곳 합계</div></div>
+          <div class="stat"><span class="ic">${icon("alert", 17)}</span><div class="v"><span data-count="${nIssues}">${nIssues}</span><small>건</small></div><div class="k">이슈 · 교훈</div></div>
         </div>
         <div class="meta"><span>버전 <b class="mono">${esc(m.version || "")}</b></span>${lastRev ? `<span>최근 개정 <b class="mono">${esc(lastRev[1])}</b></span>` : ""}<span>문서번호 <b class="mono">${esc(m.docno || "")}</b></span><span>${esc(m.org || "")}</span></div>
       </div>
-      <div class="reveal">${heroArt()}</div>
-    </div></section>
+      <div class="reveal hero-glow">${heroArt()}</div>
+    </div><svg class="wave" viewBox="0 0 1440 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C 240 0 480 46 720 24 S 1200 8 1440 26 V46 H0z"/></svg></section>
+
+    <div class="wrap"><section class="sec reveal" style="margin-top:36px">
+      <div class="sec-head"><div><div class="eyebrow">백서 지도</div><h2>5개 파트, ${nCh}개 장</h2><p>처음이라면 PART 1부터, 현장 분석은 PART 2, 실무 체크리스트는 PART 3을 펼치세요.</p></div><a class="from" href="#wp">표지 · 개정 이력 →</a></div>
+      <div class="map">${WP.parts.map((p, pi) => pi === 0 ? "" : `<a class="map-card" href="#${p.chapters[0].id}" style="--pc:${pcolor(pi)}"><span class="pn">${pi}</span><span class="pl">${esc(p.label)}</span><h3>${esc(p.title)}</h3>
+        <ul>${p.chapters.slice(0, 6).map((c) => `<li class="${c.locked ? "lk" : ""}"><b>${typeof c.num === "number" ? c.num : "A"}</b><span>${esc(c.title.replace(/ — .*/, ""))}${c.locked ? " 🔒" : ""}</span></li>`).join("")}${p.chapters.length > 6 ? `<li><b>+</b><span>외 ${p.chapters.length - 6}개 장</span></li>` : ""}</ul></a>`).join("")}</div>
+    </section></div>
 
     <div class="wrap">
     ${partsT ? `<section class="sec reveal" id="flow">
@@ -594,8 +653,8 @@
       <a href="#wp" style="display:block;padding:6px 8px;font-weight:600;text-decoration:none;color:var(--ink)">표지 · 개정 이력</a>
       ${WP.parts.map((p, pi) => {
         const open = p.chapters.some((c) => c.id === curId) || (!curId && pi === 1);
-        return `<details ${open ? "open" : ""}><summary><span class="pl">${esc(p.label || "문서")}</span><span>${esc(p.title)}</span></summary><ol>${p.chapters.map((c) =>
-          `<li><a href="#${c.id}" ${c.id === curId ? 'aria-current="true"' : ""}><span class="cn">${typeof c.num === "number" ? c.num : (c.num ? "A" : "·")}</span><span>${esc(c.title)}</span></a></li>`).join("")}</ol></details>`;
+        return `<details style="--pc:${pcolor(pi)}" ${open ? "open" : ""}><summary><span class="pl">${esc(p.label || "문서")}</span><span>${esc(p.title)}</span></summary><ol>${p.chapters.map((c) =>
+          `<li><a href="#${c.id}" ${c.id === curId ? 'aria-current="true"' : ""}><span class="cn">${typeof c.num === "number" ? c.num : (c.num ? "A" : "·")}</span><span>${esc(c.title)}${c.locked ? ' <span class="lk-ic">🔒</span>' : ""}</span></a></li>`).join("")}</ol></details>`;
       }).join("")}
       <div class="opts"><label><input type="checkbox" id="opt-guide" ${prefs.guide ? "checked" : ""}> 작성가이드(✎) 표시</label>
       <label><input type="checkbox" id="opt-secret" ${prefs.secret ? "checked" : ""}> 대외비 박스 표시</label></div>`;
@@ -651,7 +710,10 @@
       if (!cur) { doc.innerHTML = renderCover(); sub.innerHTML = ""; observe(doc); return; }
       const { p, c } = cur;
       const i = CH.indexOf(cur), prev = CH[i - 1], next = CH[i + 1];
-      doc.innerHTML = `<header class="ch-head"><div class="part">${esc(p.label)} ${esc(p.title)}</div>${typeof c.num === "number" ? `<div class="bignum" aria-hidden="true">${String(c.num).padStart(2, "0")}</div>` : ""}<h1>${esc(c.title)}</h1></header>
+      doc.style.setProperty("--pc", pcolor(cur.pi));
+      const nTbl = c.blocks.filter((b) => b.t === "table").length, nImg = c.blocks.reduce((a, b) => a + (b.t === "fig" ? 1 : b.t === "gallery" ? b.items.length : 0), 0);
+      doc.innerHTML = `<header class="ch-banner" style="--pc:${pcolor(cur.pi)}"><div class="part">${esc(p.label || "문서")} · ${esc(p.title)}</div>${typeof c.num === "number" ? `<div class="bignum" aria-hidden="true">${String(c.num).padStart(2, "0")}</div><span class="ic">${icon(CH_IC[c.num], 24)}</span>` : ""}<h1>${esc(c.title)}</h1>
+        <div class="meta">${(c.sections || []).length ? `<span>절 ${c.sections.length}개</span>` : ""}${nTbl ? `<span>표 ${nTbl}개</span>` : ""}${nImg ? `<span>그림 · 사진 ${nImg}장</span>` : ""}${c.locked ? "<span>🔒 대외비</span>" : ""}</div></header>
         ${renderBlocks(c.blocks)}
         <nav class="pager">${prev ? `<a href="#${prev.c.id}"><small>← 이전</small>${esc(chLabel(prev.c))}</a>` : "<span></span>"}${next ? `<a class="next" href="#${next.c.id}"><small>다음 →</small>${esc(chLabel(next.c))}</a>` : "<span></span>"}</nav>`;
       sub.innerHTML = (c.sections || []).length ? `<div class="eyebrow">이 장의 절</div>` + c.sections.map((s) => `<a href="#${s.id}" data-sec="${s.id}">${esc(s.text)}</a>`).join("") : "";
@@ -755,8 +817,9 @@
     ];
     const cats = {}; issues.forEach((x) => { cats[x.cat] = (cats[x.cat] || 0) + 1; });
     root.innerHTML = `<div class="wrap view">
-      <div class="sec-head"><div><div class="eyebrow">PART 2 · 2026 군산 사업 분석</div><h1 style="font-size:clamp(28px,4vw,40px)">현장 사례집</h1>
-      <p class="lead">준공 현장 ${REP.length}곳의 시공완료보고서와 백서 7장 현장별 분석, 10장 이슈 레지스터를 현장 단위로 묶었습니다. 백서를 고치면 이 화면도 함께 바뀝니다.</p></div></div>
+      <div class="page-banner reveal" style="--bgimg:url('${((REP[1] || REP[0] || {}).location_img || {}).src || ""}')"><div class="eyebrow">PART 2 · 2026 군산 사업 분석</div><h1>현장 사례집</h1>
+        <p>준공 현장 ${REP.length}곳의 시공완료보고서와 백서 7장 현장별 분석, 10장 이슈 레지스터를 현장 단위로 묶었습니다.</p>
+        <div class="chips">${REP.map((r) => `<span>${esc(r.site)} <b>${fmt(r.kwp, 2)}kWp</b></span>`).join("")}<span>이슈 <b>${issues.length}</b>건</span></div></div>
 
       ${REP.length ? `<section class="card panel reveal"><h3>준공 현장 비교 <span class="from">시공완료보고서 기준 · 막대는 세 현장 중 최댓값 대비</span></h3>
       <div class="compare"><div class="compare-row h"><span>항목</span>${REP.map((r) => `<span>${esc(r.site)}</span>`).join("")}</div>
@@ -792,8 +855,8 @@
           <div class="case-photos" data-lbgroup="hero">${pics.map((p, k) => `<button type="button" data-lb="${p.src}" data-cap="${esc(r.site)} ${k === 0 ? "전경" : k === 1 ? "설치 위치" : "시공"}"><img src="${p.src}" alt="" loading="lazy"></button>`).join("")}</div>
           <div class="card case-facts"><div class="row" style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip good">준공</span><span class="chip info">자가소비 (갑)</span><span class="chip">${esc(r.submitted || "")} 보고서 제출</span></div>
             <h2 style="margin-top:10px">${esc(r.site)}</h2><p style="margin:0;color:var(--ink-2);font-size:13.5px">${esc(r.address || "")}</p>
-            <dl class="kv"><dt>설비</dt><dd>${esc(r.capacity_text || "")}</dd><dt>계약 금액</dt><dd><span class="mono">${fmt(r.contract_amount)}</span>원 (VAT 별도)</dd>
-              <dt>재원</dt><dd>정부지원 <span class="mono">${man((r.funding || {})["정부지원금"])}</span> · 자부담 <span class="mono">${man((r.funding || {})["자기부담금"])}</span></dd>
+            <dl class="kv"><dt>설비</dt><dd>${esc(r.capacity_text || "")}</dd>${r.contract_amount ? `<dt>계약 금액</dt><dd><span class="mono">${fmt(r.contract_amount)}</span>원 (VAT 별도)</dd>
+              <dt>재원</dt><dd>정부지원 <span class="mono">${man((r.funding || {})["정부지원금"])}</span> · 자부담 <span class="mono">${man((r.funding || {})["자기부담금"])}</span></dd>` : `<dt>계약 · 재원</dt><dd><span class="lockph">대외비 — 암호를 입력하면 보입니다</span></dd>`}
               <dt>공사 기간</dt><dd>${esc(r.build_period || "")}</dd><dt>사용전검사</dt><dd>${esc(r.inspection || "")}</dd><dt>하자 보증</dt><dd>${esc(r.warranty || "")}</dd></dl></div>
         </div>
         <div class="kpis reveal">
@@ -804,7 +867,7 @@
         <div class="grid-2 sec" style="margin-top:20px">
           <div class="card panel reveal"><h3>공정 경과 <span class="from">보고서 5.2</span></h3><ol class="tl">${(r.timeline || []).map((t, k) => `<li class="${/계약|검사|허가|착공/.test(t.text) ? "major" : ""}" style="animation-delay:${k * 60}ms"><span class="d">${esc(t.date)}</span><span>${esc(t.text)}</span></li>`).join("")}</ol></div>
           <div style="display:grid;gap:16px;align-content:start">
-            <div class="card panel reveal"><h3>공종별 사업비 <span class="from">보고서 3.3 · VAT 별도</span></h3>${donut(r.cost_breakdown || [])}</div>
+            <div class="card panel reveal"><h3>공종별 사업비 <span class="from">보고서 3.3 · VAT 별도</span></h3>${r.cost_breakdown ? donut(r.cost_breakdown) : lockedBox("block")}</div>
             <div class="card panel reveal"><h3>사용전검사 항목 <span class="from">${esc(r.inspection_when || "")}</span></h3><div class="checks">${(r.checks || []).map((c) => `<div><span class="ok">${c.ok ? "✓" : "✕"}</span><span>${esc(c.item)}</span><small>${esc(c.result)}</small></div>`).join("")}</div></div>
           </div>
         </div>
@@ -965,13 +1028,17 @@
   let costOver = store.get("basis", {});
   let logOver = store.get("log", {});
   function renderCost(root) {
-    if (!COST) { root.innerHTML = '<div class="wrap view"><p>원가 데이터가 없습니다.</p></div>'; return; }
+    if (!COST) {
+      root.innerHTML = `<div class="wrap view"><div class="page-banner"><div class="eyebrow">21장 원가 관리 · 원가관리 툴 연동</div><h1>원가 분석</h1><p>시공 견적의 항목별 시장 기준 대비 판정, 노무비 실투입 분석, 기준단가 편집과 새 견적 빠른 검토를 제공합니다.</p></div>${VAULT ? lockedBox("cost") : "<p>원가 데이터가 없습니다.</p>"}</div>`;
+      return;
+    }
     let scope = "all";
     const ch21 = chByNum(21);
     const structT = findTable(ch21, "구분", "항목");
     root.innerHTML = `<div class="wrap view">
-      <div class="sec-head"><div><div class="eyebrow">21장 원가 관리 · 원가관리 툴 연동 · 대외비</div><h1 style="font-size:clamp(28px,4vw,40px)">원가 분석</h1>
-      <p class="lead">${esc(COST.title)}. 원가관리 툴의 견적원본 · 기준단가 · 투입 인원 일지로 엑셀과 같은 계산을 이 화면에서 다시 합니다. 노란 칸(기준단가 · 인원 일지)을 바꾸면 모든 표가 바로 다시 계산됩니다.</p></div>
+      <div class="page-banner"><div class="eyebrow">21장 원가 관리 · 원가관리 툴 연동 · 대외비</div><h1>원가 분석</h1><p>${esc(COST.title)}</p></div>
+      <div class="sec-head"><div>
+      <p class="lead"> 원가관리 툴의 견적원본 · 기준단가 · 투입 인원 일지로 엑셀과 같은 계산을 이 화면에서 다시 합니다. 노란 칸(기준단가 · 인원 일지)을 바꾸면 모든 표가 바로 다시 계산됩니다.</p></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="#s21-5">기준단가 근거 (21.5)</a><a class="btn" href="#s21-7">견적 검토 절차 (21.7)</a></div></div>
       <div class="stats" id="c-kpi" style="margin-top:6px"></div>
       <section class="sec reveal"><div class="sec-head"><div><h2>검토 결과</h2><p>원가관리 툴 '원가 검토 요약' 시트의 결론입니다 (${esc((COST.subtitle.match(/\d{4}-\d{2}-\d{2}[^|]*/) || [""])[0].trim())}).</p></div></div>
@@ -1115,6 +1182,51 @@
   const hhmm = (h) => { if (!isFinite(h)) return ""; const H = Math.floor(h), M = Math.round((h - H) * 60); return String(H).padStart(2, "0") + ":" + String(M).padStart(2, "0"); };
   const parseHM = (s) => { const m = String(s).trim().match(/^(\d{1,2})(?::(\d{2}))?$/); return m ? +m[1] + (+(m[2] || 0)) / 60 : null; };
 
+  /* ---------- 대외비 잠금 해제 ---------- */
+  const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  async function decryptVault(pw) {
+    const v = VAULT;
+    const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(v.salt), iterations: v.iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    const gz = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(v.iv) }, key, b64(v.ct));
+    const txt = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    return JSON.parse(txt);
+  }
+  async function unlock(pw) {
+    const full = await decryptVault(pw);
+    WP = full.wp; COST = full.cost; REP = full.reports || REP; unlocked = true;
+    indexWP(); searchIndex.cache = null;
+    try { sessionStorage.setItem("yh-solar:pw", pw); } catch (e) { /* 저장 불가 */ }
+    paintLockBtn(); route();
+  }
+  function paintLockBtn() {
+    const b = $("#unlock"); if (!b) return;
+    if (!VAULT) { b.hidden = true; return; }
+    b.classList.toggle("on", unlocked);
+    b.innerHTML = unlocked ? '🔓<span class="t"> 대외비 열림</span>' : '🔒<span class="t"> 대외비 열기</span>';
+  }
+  function askPassword() {
+    if (unlocked) { toast("대외비 내용이 이미 열려 있습니다."); return; }
+    const m = document.createElement("div");
+    m.className = "modal";
+    m.innerHTML = `<form><h2>🔒 대외비 열람</h2><p>원가 분석, 시공사 비교 · 협력사 평가, 거래 단가 같은 대외비 내용은 사내 인원만 볼 수 있습니다. 열람 암호를 입력하세요.</p>
+      <input type="password" id="pw" autocomplete="current-password" placeholder="열람 암호" aria-label="열람 암호"><div class="err" id="pw-err"></div>
+      <div class="row"><button type="button" class="btn" data-x>취소</button><button type="submit" class="btn primary">열기</button></div></form>`;
+    const close = () => m.remove();
+    m.addEventListener("click", (e) => { if (e.target === m || e.target.dataset.x !== undefined) close(); });
+    m.querySelector("form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const f = e.target, pw = $("#pw", m).value;
+      $("#pw-err", m).textContent = "확인 중…";
+      try { await unlock(pw); close(); toast("대외비 내용을 열었습니다. 이 탭을 닫으면 다시 잠깁니다."); }
+      catch (err) { $("#pw-err", m).textContent = "암호가 맞지 않습니다. 다시 입력하세요."; f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); }
+    });
+    document.body.appendChild(m); $("#pw", m).focus();
+  }
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-unlock], .lockph, #unlock")) { e.preventDefault(); askPassword(); }
+  });
+
   /* ---------- 라우터 ---------- */
   let cleanup = [];
   function route() {
@@ -1141,5 +1253,8 @@
   const m = WP.meta || {};
   $("#foot").innerHTML = `<div class="wrap"><span>${esc(m.title || "")} ${esc(m.version || "")} · ${esc(m.docno || "")} · ${esc(m.org || "")}</span><span>${esc(m.badge || "")} · 외부 공유 금지${BUILT ? " · 갱신 " + esc(BUILT) : ""}</span></div>`;
   $("#ver").textContent = m.version || "";
+  paintLockBtn();
   route();
+  let saved = null; try { saved = sessionStorage.getItem("yh-solar:pw"); } catch (e) { /* 없음 */ }
+  if (VAULT && saved) unlock(saved).catch(() => { try { sessionStorage.removeItem("yh-solar:pw"); } catch (e) { /* 없음 */ } });
 })();

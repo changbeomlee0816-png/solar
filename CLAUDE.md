@@ -1,7 +1,12 @@
 # CLAUDE.md — 태양광 백서 웹 업데이트 절차
 
-## 배포 대상
-- Artifact URL: https://claude.ai/artifact/LhNbDu4kexq28L5cVSEcsX (title: 태양광 사업관리 백서)
+## 배포 대상 (두 곳)
+1. 공개 사이트 (Netlify): https://yuhost-solar-whitepaper.netlify.app — siteId `278ca3e2-5156-4d9a-bf4e-ca944be332ca`
+   - 공개용 빌드(`WP_PASSWORD` 지정)만 올린다. 열람 암호는 사용자에게 받는다. 저장소 · 커밋 메시지 · 문서에 암호를 쓰지 않는다.
+   - Netlify MCP `deploy-site`(siteId 위 값)가 알려주는 `npx -y @netlify/mcp@latest --site-id ... --proxy-path ...` 명령을 빌드 폴더 안에서 실행한다.
+   - 빌드 폴더에 `netlify.toml`(publish ".", command "", X-Robots-Tag noindex)을 넣는다.
+   - 배포 후 curl로 200 확인, Playwright로 잠금 해제까지 확인한다.
+2. 사내 전체본 Artifact URL: https://claude.ai/artifact/LhNbDu4kexq28L5cVSEcsX (암호 없이 빌드한 것)
 - 항상 이 URL로 다시 배포한다 (Artifact publish 시 `url`에 위 주소를 넣는다. 새 Artifact를 만들지 않는다).
 - 다른 대화에서 배포할 때는 먼저 `action: "read"`로 위 URL을 읽은 뒤 publish 한다.
 

@@ -2,9 +2,11 @@
 
 ㈜유호스트 태양광 TF의 「태양광 사업관리 백서」를 사내 인원이 보기 쉬운 웹 화면으로 바꾸는 빌드 도구입니다.
 
-- **배포 주소 (고정 링크):** https://claude.ai/artifact/LhNbDu4kexq28L5cVSEcsX
-  - 비공개 Artifact입니다. 페이지의 **Share** 메뉴에서 공유할 사람을 지정해야 다른 인원이 열 수 있습니다.
-  - 백서를 고쳐 다시 빌드 · 배포해도 **같은 링크**가 유지됩니다.
+- **공개 주소:** https://yuhost-solar-whitepaper.netlify.app
+  - 누구나 열 수 있습니다. 대외비 내용(원가 분석, 계약 · 시공사 비교 · 협력사 장, '대외비' 표시 박스 · 행 · 절, 보고서 금액 항목)은
+    **암호화**되어 있고, 오른쪽 위 「🔒 대외비 열기」에 열람 암호를 넣어야 보입니다. 암호는 저장소에 기록하지 않습니다.
+  - 다시 빌드 · 배포해도 같은 주소가 유지됩니다.
+- **사내 전체본 (비공개):** https://claude.ai/artifact/LhNbDu4kexq28L5cVSEcsX — 암호 없이 전체 내용, Share 메뉴로 공유
 
 ## 화면 구성
 
@@ -31,13 +33,15 @@ pip install python-docx openpyxl pillow   # poppler-utils(pdftotext, pdfimages)�
 ```bash
 python3 -I build/build_site.py --docx source/백서.docx --xlsx source/원가관리툴.xlsx --reports source/reports --out dist
 ```
-`dist/index.html`과 `dist/img/`, `dist/rep/`가 만들어집니다. 브라우저로 `dist/index.html`을 열어 확인할 수 있습니다.
+`dist/index.html`과 `dist/img/`, `dist/rep/`가 만들어집니다.
+공개용(대외비 암호화) 빌드는 암호를 환경변수로 줍니다: `WP_PASSWORD='열람암호' python3 -I build/build_site.py ... --out pub` 브라우저로 `dist/index.html`을 열어 확인할 수 있습니다.
 
 ## 보안
 
 - 이 저장소는 **공개 저장소**입니다. 백서 · 원가 툴 · 보고서 원본과 빌드 결과(`dist/`)는 `.gitignore`로 제외되어 커밋되지 않습니다.
 - 보고서 변환기는 FEMS 접속 아이디 · 비밀번호, 사업자등록번호 같은 항목을 읽지 않습니다.
-- 백서의 '대외비' 박스는 백서 화면 왼쪽 아래 옵션으로 숨길 수 있습니다 (외부 설명용).
+- 공개용 빌드는 `build/protect.py`가 대외비를 지운 공개 데이터와, 원본 전체를 AES-256-GCM(PBKDF2-SHA256 31만 회)으로 암호화한 덩어리를 함께 싣습니다. 공개 파일 어디에도 대외비 원문이 없고, 대외비 장에만 쓰인 사진도 암호문 안으로 옮깁니다.
+- 브라우저 안에서 푸는 방식이라 보안 강도는 암호 길이에 달려 있습니다. 길고 다른 곳에 쓰지 않는 암호를 쓰세요.
 
 ## 폴더
 
@@ -46,6 +50,7 @@ build/convert_docx.py     백서 .docx → 구조화 JSON + 이미지
 build/convert_xlsx.py     원가관리 툴 .xlsx → 입력값 JSON (계산은 화면에서 재현)
 build/convert_reports.py  시공완료보고서 PDF → 핵심 수치 · 공정 · 사진
 build/build_site.py       위 세 개를 돌려 dist/index.html 하나로 묶음
+build/protect.py          공개용: 대외비 제거 + 원본 암호화
 site/                     화면 코드 (index.template.html, style.css, app.js)
 source/                   원본 자료 두는 곳 (git 제외)
 ```
