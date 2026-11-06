@@ -8,6 +8,7 @@
 """
 import argparse
 import os
+import re
 import datetime as dt
 import json
 import shutil
@@ -46,6 +47,14 @@ def main():
     if a.reports:
         run("convert_reports.py", a.reports, out)
         data["reports"] = json.loads((out / "reports.json").read_text(encoding="utf-8"))
+        # 사례집에서 내려받을 시공완료보고서 원본 PDF
+        (out / "rep" / "pdf").mkdir(parents=True, exist_ok=True)
+        for i, r in enumerate(data["reports"]):
+            src = Path(a.reports) / r["file"]
+            dst = out / "rep" / "pdf" / f"report-{i + 1}.pdf"
+            shutil.copyfile(src, dst)
+            name = re.sub(r"\(주\)|\(유\)|[㈜()\s]", "", r.get("site") or f"현장{i + 1}") + "_시공완료보고서.pdf"
+            r["pdf"] = {"src": f"rep/pdf/report-{i + 1}.pdf", "name": name, "size": dst.stat().st_size, "submitted": r.get("submitted")}
     data["built"] = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     if a.password:
         sys.path.insert(0, str(BUILD))

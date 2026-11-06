@@ -88,18 +88,41 @@ def inline_images(obj, srcs, root):
     return json.loads(s)
 
 
-def encrypt(obj, password):
+def b64(x):
+    return base64.b64encode(x).decode()
+
+
+def derive(password, salt):
+    return PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=ITER).derive(password.encode("utf-8"))
+
+
+def encrypt(obj, key, salt):
     raw = gzip.compress(json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), 9)
-    salt, iv = os.urandom(16), os.urandom(12)
-    key = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=ITER).derive(password.encode("utf-8"))
+    iv = os.urandom(12)
     ct = AESGCM(key).encrypt(iv, raw, None)
-    b64 = lambda x: base64.b64encode(x).decode()
     return {"v": 1, "iter": ITER, "salt": b64(salt), "iv": b64(iv), "ct": b64(ct)}
+
+
+def encrypt_pdfs(reports, key, root):
+    """시공완료보고서 PDF를 같은 키로 파일 단위 암호화 (rep/pdf/*.bin). 원본 PDF는 공개 폴더에서 지운다."""
+    for r in reports or []:
+        pdf = r.get("pdf")
+        if not pdf or pdf.get("enc"):
+            continue
+        src = root / pdf["src"]
+        iv = os.urandom(12)
+        dst = src.with_suffix(".bin")
+        dst.write_bytes(AESGCM(key).encrypt(iv, src.read_bytes(), None))
+        src.unlink()
+        pdf.update({"src": str(dst.relative_to(root)).replace("\\", "/"), "iv": b64(iv), "enc": True})
 
 
 def protect(data, password, root):
     """data: {wp, cost, reports, built} → (공개 데이터, 숨긴 이미지 목록)"""
     root = Path(root)
+    salt = os.urandom(16)
+    key = derive(password, salt)
+    encrypt_pdfs(data.get("reports"), key, root)
     full = {"wp": data["wp"], "cost": data.get("cost"), "reports": data.get("reports")}
     pub = {"wp": redact_wp(data["wp"]), "cost": None, "built": data.get("built")}
     if data.get("reports") is not None:
@@ -107,7 +130,7 @@ def protect(data, password, root):
     # 공개본에서 빠진 사진은 암호문 안으로 옮긴다
     hidden = image_srcs(full) - image_srcs(pub)
     full = inline_images(full, hidden, root)
-    pub["vault"] = encrypt(full, password)
+    pub["vault"] = encrypt(full, key, salt)
     pub["vault"]["hint"] = "대외비 열람 암호"
     assert KEYWORD not in json.dumps({k: v for k, v in pub.items() if k != "vault"}, ensure_ascii=False).replace("대외비 — 암호를 입력하면 보입니다", "").replace(pub["wp"]["meta"].get("badge", ""), ""), "공개본에 대외비 문구가 남아 있습니다"
     return pub, sorted(hidden)

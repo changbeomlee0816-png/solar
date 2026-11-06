@@ -825,6 +825,9 @@
       <div class="compare"><div class="compare-row h"><span>항목</span>${REP.map((r) => `<span>${esc(r.site)}</span>`).join("")}</div>
       ${rowsDef.map(([lab, k, f, low]) => { const vals = metrics.map((m) => m[k]); const mx = Math.max(...vals.filter(isFinite)); return `<div class="compare-row"><span>${lab}${low ? ' <small style="color:var(--ink-3)">(짧을수록 좋음)</small>' : ""}</span>${vals.map((v) => `<span class="cv"><b>${isFinite(v) ? f(v) : "–"}</b><i style="width:${isFinite(v) ? (v / mx * 100).toFixed(1) : 0}%;${low ? "background:var(--sun)" : ""}"></i></span>`).join("")}</div>`; }).join("")}</div></section>` : ""}
 
+      ${REP.some((r) => r.pdf) ? `<section class="card panel reveal" style="margin-top:16px"><h3>시공완료보고서 내려받기 <span class="from">${REP[0].pdf && REP[0].pdf.enc ? "대외비 · 열람 암호 입력 후 내려받을 수 있습니다" : "원문 PDF"}</span></h3>
+        <div class="dl-list">${REP.map((r, i) => r.pdf ? `<div class="dl-item"><span class="dl-ic">PDF</span><div><b>${esc(r.site)}</b><small>${esc(r.pdf.name)} · ${(r.pdf.size / 1048576).toFixed(1)}MB · ${esc(r.submitted || "")} 제출</small></div>${dlBtn(r, i, "btn")}</div>` : "").join("")}</div></section>` : ""}
+
       <section class="sec" id="case-detail-top">
         <div class="seg case-pick" id="case-pick" role="group" aria-label="현장 선택">${REP.map((r, i) => `<button type="button" data-i="${i + 1}" aria-pressed="${i === sel}">${esc(r.site)}</button>`).join("")}</div>
         <div id="case-detail"></div>
@@ -857,7 +860,8 @@
             <h2 style="margin-top:10px">${esc(r.site)}</h2><p style="margin:0;color:var(--ink-2);font-size:13.5px">${esc(r.address || "")}</p>
             <dl class="kv"><dt>설비</dt><dd>${esc(r.capacity_text || "")}</dd>${r.contract_amount ? `<dt>계약 금액</dt><dd><span class="mono">${fmt(r.contract_amount)}</span>원 (VAT 별도)</dd>
               <dt>재원</dt><dd>정부지원 <span class="mono">${man((r.funding || {})["정부지원금"])}</span> · 자부담 <span class="mono">${man((r.funding || {})["자기부담금"])}</span></dd>` : `<dt>계약 · 재원</dt><dd><span class="lockph">대외비 — 암호를 입력하면 보입니다</span></dd>`}
-              <dt>공사 기간</dt><dd>${esc(r.build_period || "")}</dd><dt>사용전검사</dt><dd>${esc(r.inspection || "")}</dd><dt>하자 보증</dt><dd>${esc(r.warranty || "")}</dd></dl></div>
+              <dt>공사 기간</dt><dd>${esc(r.build_period || "")}</dd><dt>사용전검사</dt><dd>${esc(r.inspection || "")}</dd><dt>하자 보증</dt><dd>${esc(r.warranty || "")}</dd></dl>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px">${dlBtn(r, i)}<span class="from">${esc(r.submitted || "")} 제출본 원문</span></div></div>
         </div>
         <div class="kpis reveal">
           ${kpi("sun", "예상 발전량", (e.gen || {}).value || "–", (e.gen || {}).note)}${kpi("cell", "자가소비량", (e.self || {}).value || "–", (e.self || {}).note)}
@@ -1184,11 +1188,36 @@
 
   /* ---------- 대외비 잠금 해제 ---------- */
   const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  let vaultKey = null;
+  const PUBLIC_URL = "https://yuhost-solar-whitepaper.netlify.app";
+  async function downloadReport(i, btn) {
+    const r = REP[i], pdf = r && r.pdf; if (!pdf) return;
+    if (!pdf.enc) {
+      const a = document.createElement("a"); a.href = pdf.src; a.download = pdf.name; document.body.appendChild(a); a.click(); a.remove();
+      if (/claude\.ai|claudeusercontent/.test(location.hostname)) toast("이 화면에서 내려받기가 막히면 공개 사이트에서 받으세요: " + PUBLIC_URL);
+      return;
+    }
+    if (!vaultKey) { askPassword(); toast("시공완료보고서는 대외비입니다. 암호를 입력한 뒤 다시 누르세요."); return; }
+    const old = btn ? btn.innerHTML : "";
+    try {
+      if (btn) { btn.disabled = true; btn.textContent = "내려받는 중…"; }
+      const buf = await (await fetch(pdf.src)).arrayBuffer();
+      const plainBuf = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(pdf.iv) }, vaultKey, buf);
+      const url = URL.createObjectURL(new Blob([plainBuf], { type: "application/pdf" }));
+      const a = document.createElement("a"); a.href = url; a.download = pdf.name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      toast(pdf.name + " 을(를) 내려받았습니다.");
+    } catch (e) { toast("내려받지 못했습니다. 인터넷 연결을 확인하고 다시 눌러 주세요."); }
+    finally { if (btn) { btn.disabled = false; btn.innerHTML = old; } }
+  }
+  const dlBtn = (r, i, cls = "btn primary") => r.pdf ? `<button type="button" class="${cls}" data-dl="${i}">${r.pdf.enc && !unlocked ? "🔒 " : "⬇ "}시공완료보고서 PDF <small class="mono" style="opacity:.75">${(r.pdf.size / 1048576).toFixed(1)}MB</small></button>` : "";
+  document.addEventListener("click", (e) => { const b = e.target.closest("[data-dl]"); if (b) { e.preventDefault(); downloadReport(+b.dataset.dl, b); } });
   async function decryptVault(pw) {
     const v = VAULT;
     const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveKey"]);
     const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(v.salt), iterations: v.iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
     const gz = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(v.iv) }, key, b64(v.ct));
+    vaultKey = key;
     const txt = await new Response(new Blob([gz]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
     return JSON.parse(txt);
   }
