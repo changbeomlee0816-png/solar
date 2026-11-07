@@ -370,6 +370,86 @@
       ["d", "doc", "수용가 요구로 설계가 바뀌기 쉽다", "요구사항을 서면으로 확정 (협동조합 사례)"],
     ],
   };
+
+  /* ---------- 사업 유형별 진행 가이드 (일반 절차) ----------
+     참고: 한전 EN:TER 전력거래계약 안내, 한국에너지공단 신재생 클라우드 사업 절차, 직접PPA 고시 해설(2022.9 시행) 등.
+     세부 서류 · 기준은 관할 한전 · 지자체 · 전기안전공사에 확인한다. */
+  const AG = { 사업자: "#0f1b33", 설계사: "#5a6b86", 지자체: "#12a36b", 한전: "#e8504f", 전기안전공사: "#f08400", 시공사: "#3266ff", 전력거래소: "#8a4fd6", 정부: "#0e9aa7" };
+  const GD = (k) => (window.ILL ? ({
+    survey: () => ILL.plant(), design: () => ILL.documentPaper("설계도 · 구조검토", "검토"), permit: () => ILL.documentPaper("개발행위허가 · 신고", "허가"),
+    biz: () => ILL.documentPaper("발전사업 허가증", "허가"), contract: () => ILL.documentPaper("전력 공급 계약서", "계약"), kepco: () => ILL.pole(), meter: () => ILL.board(),
+    rpr: () => ILL.relay(), build: () => ILL.factory({ step: 3, highlight: false }), inspect: () => ILL.factory({ step: 6, highlight: false, monitor: false }),
+    run: () => ILL.monitor(), money: () => ILL.coin(), market: () => ILL.office("#8a4fd6", "", true), wall: () => ILL.bapv(), module: () => ILL.module(),
+  }[k] || (() => ""))() : "");
+  const TYPES = [
+    { name: "자가소비", sub: "만든 전기를 건물에서 바로 쓴다", tag: "가장 일반적",
+      own: "건물주(공장)", use: "생산한 전기를 공장이 먼저 사용, 모자라면 한전 전기", pay: "한전 전기요금이 줄어듦 (남는 전기는 보내지 않음)",
+      time: "약 3 ~ 5개월", fit: "낮에 전기를 많이 쓰는 공장", watch: "휴일 · 점심처럼 사용량이 적을 때 남는 전기가 한전으로 가지 않도록 역전력계전기를 단다",
+      steps: [
+        ["survey", "사업자", "사전 검토", "지붕 면적 · 구조 · 방향과 최근 1년 전기 사용량(고지서)을 보고 설비 용량을 정한다. 수전 방식(저압 · 고압)도 확인"],
+        ["design", "설계사", "설계 · 구조검토", "모듈 배치도, 단선결선도를 그리고 지붕이 무게와 바람을 견디는지 구조안전을 확인"],
+        ["permit", "지자체", "인허가 · 신고", "지자체에 따라 개발행위허가, 공작물 축조신고 등을 받는다. 규모에 따라 전기공사계획 신고"],
+        ["kepco", "한전", "한전 병렬 협의", "한전 선로와 함께 쓰는(병렬) 설비로 협의. 남는 전기를 보내지 않는 구조인지 확인"],
+        ["build", "시공사", "시공", "지붕 보강 → 안전시설 → 구조물 → 모듈 → 전기 순으로 공사, 감리가 확인"],
+        ["inspect", "전기안전공사", "사용전검사", "검사에 합격해야 발전을 시작할 수 있다. 전기안전관리자를 선임"],
+        ["run", "사업자", "운영 · 절감 확인", "모니터링으로 발전량을 보고, 매월 고지서로 요금 절감을 확인. 정기 점검"],
+      ] },
+    { name: "자가소비 + 상계거래", sub: "남는 전기를 한전에 보내고 요금에서 뺀다", tag: "남는 전기가 많을 때",
+      own: "건물주(공장)", use: "먼저 공장이 쓰고, 남는 전기는 한전으로 보냄", pay: "보낸 전력량만큼 한전 전기요금에서 차감(상계)",
+      time: "약 4 ~ 6개월 (한전 협의 포함)", fit: "주말 · 휴일이 많거나 사용량보다 설비가 큰 건물 (태양광 자가용 1,000kW 이하)",
+      watch: "고압으로 전기를 받는 건물은 양방향 계량기 교체, 차단 설비 신설 등 추가 비용이 클 수 있어 영업 전에 관할 한전에 먼저 확인",
+      steps: [
+        ["survey", "사업자", "사전 검토", "전기 사용 패턴으로 남는 전기 양을 추정하고, 수전 방식에 따른 추가 설비를 확인"],
+        ["design", "설계사", "설계 · 구조검토", "양방향 계량을 포함한 단선결선도와 구조안전 검토"],
+        ["permit", "지자체", "인허가 · 신고", "개발행위허가 등 지자체 인허가, 필요 시 전기공사계획 신고"],
+        ["kepco", "한전", "상계거래 신청", "요금상계거래 신청서, 단선결선도, 모듈 · 인버터 인증서 등을 내고 한전 기술검토를 받는다"],
+        ["meter", "한전", "양방향 계량기 설치", "보낸 전기와 받은 전기를 따로 재는 계량기(MOF 등)로 바꾸고, 필요한 비용(불입금)을 낸다"],
+        ["inspect", "전기안전공사", "사용전검사", "합격 후 발전 시작, 전기안전관리자 선임"],
+        ["money", "한전", "매월 상계 정산", "고지서에서 보낸 전력량만큼 요금이 빠진다. 상계 후 남는 전력의 처리는 한전 기준에 따른다"],
+      ] },
+    { name: "직접PPA", sub: "발전사업자가 짓고, 기업이 전기를 산다", tag: "투자 없이 재생에너지 사용",
+      own: "발전사업자 (지붕을 빌려 설비 투자)", use: "기업(전기사용자)이 계약한 재생에너지 전기를 공급받음", pay: "기업이 발전사업자에게 전력요금, 한전에 망 이용료를 냄",
+      time: "약 6개월 이상 (허가 · 계약 기간이 김)", fit: "RE100 등 재생에너지 사용 실적이 필요하지만 직접 투자하기 어려운 기업",
+      watch: "직접PPA로 공급한 전기는 REC가 나오지 않는다. 망 이용료 · 부가 정산금 등 비용 구조와 10 ~ 20년 계약 조건을 꼼꼼히 비교",
+      steps: [
+        ["contract", "사업자", "계약 구조 협의", "기업과 발전사업자가 공급 기간 · 단가 · 물량, 지붕 임대 조건을 정한다"],
+        ["biz", "지자체", "발전사업허가", "전기를 파는 사업이므로 발전사업자 명의로 발전사업허가를 받는다 (규모에 따라 시 · 도 또는 정부)"],
+        ["contract", "정부", "직접 전력거래 계약 신고", "재생에너지 전기공급사업 등록 · 직접PPA 계약 신고 등 고시 절차를 밟는다"],
+        ["kepco", "한전", "계통연계 · 망 이용 신청", "한전 선로로 전기를 보내므로 연계 여유용량을 확인하고 망 이용을 신청"],
+        ["build", "시공사", "인허가 · 시공", "개발행위허가, 공사계획신고 후 시공. 계량 · 통신 설비 포함"],
+        ["inspect", "전기안전공사", "사용전검사", "합격 후 발전 시작"],
+        ["market", "전력거래소", "공급 개시 · 정산", "계량값으로 매월 정산. 기업은 발전사업자 요금과 한전 망 이용료를 낸다"],
+      ] },
+    { name: "BAPV · BIPV", sub: "건물 벽 · 지붕에 붙이거나 건물 자재로 쓴다", tag: "지붕이 부족할 때",
+      own: "건물주 (자가소비와 같음)", use: "생산한 전기를 건물에서 사용", pay: "한전 전기요금이 줄어듦",
+      time: "BAPV 약 3 ~ 5개월 · BIPV는 건축 일정에 따름", fit: "지붕이 좁거나 약한 건물, 신축 · 리모델링 건물 (BIPV)",
+      watch: "벽면은 지붕보다 발전량이 적다. 외장재가 바뀌는 경우 건축 인허가 · 방화 기준을 지자체에 먼저 확인",
+      steps: [
+        ["wall", "사업자", "건물 조건 검토", "벽면 방향 · 그늘 · 외장 구조를 본다. BAPV는 기존 건물에 덧붙이고, BIPV는 모듈이 외장재 역할"],
+        ["design", "설계사", "건축 · 전기 설계", "BIPV는 건축 설계 단계부터 함께 설계. 소용량 인버터 구성"],
+        ["permit", "지자체", "건축 · 외장 검토", "구조 · 방화 · 외장 기준과 건축 인허가 변경 필요 여부 확인"],
+        ["kepco", "한전", "한전 병렬 협의", "자가소비와 같은 방식으로 협의"],
+        ["build", "시공사", "시공", "외장 공사와 연계해 설치, 고소 작업 안전관리"],
+        ["inspect", "전기안전공사", "사용전검사", "합격 후 발전 시작"],
+        ["run", "사업자", "운영", "외장 청소 · 점검, 발전량 확인"],
+      ] },
+  ];
+  function typeGuide(i) {
+    const t = TYPES[i];
+    const ags = [...new Set(t.steps.map((s) => s[1]))];
+    return `<div class="tg">
+      <div class="tg-sum">
+        <div><span>설비는 누가</span><b>${esc(t.own)}</b></div>
+        <div><span>전기는 누가</span><b>${esc(t.use)}</b></div>
+        <div><span>돈은 어떻게</span><b>${esc(t.pay)}</b></div>
+      </div>
+      <h4 class="tg-h">사업은 이렇게 진행됩니다 <small>보통 ${esc(t.time)}</small></h4>
+      <ol class="tg-steps">${t.steps.map(([ill, ag, title, desc], k) => `<li style="--ag:${AG[ag]}"><span class="tg-pic">${GD(ill)}<em>${k + 1}</em></span>
+        <div class="tg-b"><div class="tg-t"><b>${esc(title)}</b><span class="tg-ag">${esc(ag)}</span></div><p>${esc(desc)}</p></div></li>`).join("")}</ol>
+      <div class="tg-foot"><div class="tg-fit"><b>이럴 때 맞아요</b><p>${esc(t.fit)}</p></div><div class="tg-watch"><b>꼭 확인할 점</b><p>${esc(t.watch)}</p></div></div>
+      <div class="tg-legend">${ags.map((a) => `<span><i style="background:${AG[a]}"></i>${esc(a)}</span>`).join("")}</div>
+    </div>`;
+  }
   function typeStory(name) {
     const st = STORIES[name] || STORIES["자가소비 (갑)"];
     const KIND = { e: ["전기", "e"], m: ["돈", "m"], x: ["차단", "x"], d: ["확인", "d"] };
@@ -572,13 +652,14 @@
         <div class="parts-list parts-row" id="parts">${bodyRows(partsT).map((r, i) => `<button type="button" class="part-item" data-i="${i}" data-node="${NODE_OF[r[0]] || ""}"><span class="n">${String(i + 1).padStart(2, "0")}</span><span><b>${esc(r[0])}</b><span>${esc(r[1])}</span></span></button>`).join("")}</div>
       </div></section>` : ""}
 
-    ${typesT ? `<section class="sec reveal" id="types">
-      <div class="sec-head"><div><div class="eyebrow">2장 · 사업 유형</div><h2>누가 소유하고, 누가 쓰고, 누구에게 내는가</h2>
-      <p>사업 유형은 세 질문으로 갈립니다. 유형을 고르면 전기(주황)와 돈(초록)이 어떻게 오가는지 순서대로 보여줍니다.</p></div><a class="from" href="#s2-1">백서 2.1 사업 유형 비교 →</a></div>
+    <section class="sec reveal" id="types">
+      <div class="sec-head"><div><div class="eyebrow">사업 유형 · 진행 절차</div><h2>태양광 사업, 이렇게 진행합니다</h2>
+      <p>건물 태양광은 크게 네 가지 방식이 있습니다. 방식을 고르면 설비 · 전기 · 돈이 어떻게 오가는지와, 사전 검토부터 운영까지 단계별로 누가 무엇을 하는지 보여줍니다.</p></div><a class="from" href="#s2-1">백서 2장 사업 유형 →</a></div>
       <div class="types">
-        <div class="type-tabs" id="type-tabs">${typesT.rows[0].slice(1).map((c, i) => { const name = plain(c.html); const site = (bodyRows(typesT).find((r) => r[0].includes("2026")) || [])[i + 1] || ""; return `<button type="button" class="type-tab" data-i="${i}" aria-pressed="${i === 0}"><b>${esc(name)}</b><small>${esc(site)}</small></button>`; }).join("")}</div>
+        <div class="type-tabs" id="type-tabs">${TYPES.map((t, i) => `<button type="button" class="type-tab" data-i="${i}" aria-pressed="${i === 0}"><span class="tt-tag">${esc(t.tag)}</span><b>${esc(t.name)}</b><small>${esc(t.sub)}</small></button>`).join("")}
+          <p class="from tg-src">참고: <a href="https://en-ter.co.kr/ft/ppa/contract/infa/info1.do" target="_blank" rel="noopener">한전 EN:TER 전력거래계약</a> · <a href="https://recloud.energy.or.kr/process/sub1_3_2.do" target="_blank" rel="noopener">한국에너지공단 신재생 사업 절차</a> · <a href="https://shinkim.com/eng/media/newsletter/1637" target="_blank" rel="noopener">직접PPA 제도 해설</a>. 세부 서류와 기준은 관할 한전 · 지자체 · 전기안전공사에 확인하세요.</p></div>
         <div class="card type-detail" id="type-detail"></div>
-      </div></section>` : ""}
+      </div></section>
 
     ${stepsT ? `<section class="sec reveal" id="steps">
       <div class="sec-head"><div><div class="eyebrow">3장 · 사업 전체 흐름</div><h2>영업부터 사후관리까지 ${bodyRows(stepsT).length - 1}단계</h2>
@@ -644,15 +725,11 @@
       pick(0);
     }
     // 사업 유형
-    if (typesT) {
-      const names = typesT.rows[0].slice(1).map((c) => plain(c.html));
-      const rows = bodyRows(typesT);
+    {
       const det = $("#type-detail", root);
       const pick = (i) => {
         $$(".type-tab", root).forEach((b) => b.setAttribute("aria-pressed", +b.dataset.i === i));
-        det.innerHTML = `${typeStory(names[i])}
-          <div class="legend"><span><i style="background:var(--sun)"></i>전기</span><span><i style="background:var(--leaf)"></i>돈</span><span><i style="background:var(--bad)"></i>차단</span><span><i style="background:var(--ink-2)"></i>확인할 것</span></div>
-          <dl class="kv">${rows.map((r) => `<dt>${esc(r[0])}</dt><dd>${esc(r[i + 1])}</dd>`).join("")}</dl>`;
+        det.innerHTML = typeGuide(i);
       };
       $("#type-tabs", root).addEventListener("click", (e) => { const b = e.target.closest(".type-tab"); if (b) pick(+b.dataset.i); });
       pick(0);

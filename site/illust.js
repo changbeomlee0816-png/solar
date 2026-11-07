@@ -358,15 +358,15 @@
     if (label) s += `<g transform="translate(170 40)"><rect width="64" height="22" rx="11" fill="${color}"/><text x="32" y="15" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" font-family="Pretendard, sans-serif">${label}</text></g>`;
     return wrap(id, "40 30 190 160", s, label || "건물");
   }
-  function documentPaper() {
+  function documentPaper(title = "발전사업 허가증", stamp = "승인") {
     const id = "d" + (++UID), I = Iso(60, 84, 1.6);
     let s = I.poly([[-30, -30, 0], [110, -30, 0], [110, 70, 0], [-30, 70, 0]], "#eef2f7");
     s += I.shadow(4, 4, 60, 76, id);
     s += I.box(0, 0, 0, 62, 80, 1.4, "#ffffff", { stroke: "#c9d2de" });
-    s += `<g transform="${I.faceTop(0, 0, 1.4)}"><text x="8" y="12" font-size="6.6" font-weight="900" fill="#0b1220" font-family="Pretendard, sans-serif">발전사업 허가증</text>
+    s += `<g transform="${I.faceTop(0, 0, 1.4)}"><text x="8" y="12" font-size="6.6" font-weight="900" fill="#0b1220" font-family="Pretendard, sans-serif">${title}</text>
       ${[0, 1, 2, 3, 4, 5].map((i) => `<rect x="8" y="${20 + i * 7}" width="${44 - (i % 3) * 8}" height="2.4" rx="1.2" fill="#c9d2de"/>`).join("")}
-      <circle cx="46" cy="66" r="8" fill="none" stroke="#c43b3b" stroke-width="1.6"/><text x="46" y="68" text-anchor="middle" font-size="5" font-weight="900" fill="#c43b3b" font-family="Pretendard, sans-serif">승인</text></g>`;
-    return wrap(id, "0 0 260 195", s, "허가 서류");
+      <circle cx="46" cy="66" r="8" fill="none" stroke="#c43b3b" stroke-width="1.6"/><text x="46" y="68" text-anchor="middle" font-size="5" font-weight="900" fill="#c43b3b" font-family="Pretendard, sans-serif">${stamp}</text></g>`;
+    return wrap(id, "0 0 260 195", s, title);
   }
   function bapv() {
     const id = "v" + (++UID), I = Iso(96, 132, 1.3);
