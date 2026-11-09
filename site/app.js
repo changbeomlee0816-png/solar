@@ -637,6 +637,7 @@
           <div class="h3-tip" id="h3-tip" hidden></div>
           <span class="h3-hint" id="h3-hint">${icon("pointer", 14)} 끌어서 돌려 보기 · 점을 누르면 설명</span>
         </div>
+        <div class="h3-sw" id="h3-sw" role="group" aria-label="설치 방식 3D 보기">${[["hero", "hero", "공장 지붕"], ["flatroof", "flatroof", "옥상"], ["carport", "carport", "주차장"], ["ground", "ground", "지상"], ["agri", "agri", "영농형"], ["floating", "floating", "수상"], ["wall", "wall", "벽면"]].map(([s, im, n], i) => `<button type="button" data-shot="${s}" data-img="${im}" aria-pressed="${i === 0}">${n}</button>`).join("")}</div>
         <div class="h3-sun glass" id="h3-sun">
           <div class="h3-sun-h"><span class="k">해의 위치</span><b id="h3-time">오전 10:30</b><span class="h3-out" id="h3-out"></span></div>
           <input type="range" id="h3-hr" min="6" max="19" step="0.05" value="10.5" aria-label="시각">
@@ -672,6 +673,14 @@
         <div class="card type-detail" id="type-detail"></div>
       </div></section>
 
+
+    <section class="sec reveal" id="methods">
+      <div class="sec-head"><div><div class="eyebrow">설치 방식 · 어디에 짓나요</div><h2>지붕만 있는 게 아닙니다</h2>
+      <p>같은 태양광이라도 어디에 짓느냐에 따라 공사비 · 발전량 · 인허가 · 확인할 것이 달라집니다. 방식을 고르면 3D 모델과 함께 차이를 보여줍니다.</p></div></div>
+      <div class="md-tabs" id="md-tabs" role="tablist">${METHODS.map((m, i) => `<button type="button" role="tab" class="md-tab" data-i="${i}" aria-selected="${i === 0}"><span class="md-th"><img src="3d/${m.img}.webp" alt="" loading="lazy"></span><b>${esc(m.short)}</b><small>${m.cost[0]}~${m.cost[1]}만/kW</small></button>`).join("")}</div>
+      <div class="card md" id="md">${methodDetail(0)}</div>
+      <div class="card md-cmp"><h3>한눈에 비교</h3>${methodCompare()}</div>
+    </section>
     ${stepsT ? `<section class="sec reveal" id="steps">
       <div class="sec-head"><div><div class="eyebrow">3장 · 사업 전체 흐름</div><h2>영업부터 사후관리까지 ${bodyRows(stepsT).length - 1}단계</h2>
       <p>각 단계의 '다음 단계 진행 조건'을 채워야 넘어갑니다. 자가소비형은 약 4개월, 직접PPA는 약 7~8개월 걸립니다.</p></div>
@@ -693,6 +702,7 @@
       <p>용량 · 발전시간 · 자가소비율 · 전기요금을 넣으면 연간 절감액, 회수기간, 20년 누적 현금흐름을 계산합니다. 자부담 100%와 정부지원(자부담 30%)을 나란히 비교합니다.</p></div><a class="from" href="#s1-4">백서 1.4 · 26 · 27장 →</a></div>
       <div class="sim card">
         <div class="sim-in">
+          <div class="sim-f"><span>설치 방식</span><div class="seg sim-meth" id="s-meth">${METHODS.map((m, i) => `<button type="button" data-m="${i}" aria-pressed="${i === 0}">${esc(m.short)}</button>`).join("")}</div></div>
           <label class="sim-f"><span>설비 용량 <b class="sim-v" id="sv-kw">143</b> kWp</span><input type="range" id="s-kw" min="10" max="1000" step="1" value="143" aria-label="설비 용량"></label>
           <div class="seg" id="s-pre"><button type="button" data-v="100">100kW</button>${REP.map((r) => `<button type="button" data-v="${r.kwp}">${esc(norm(r.site).replace(/공장$/, ""))}</button>`).join("")}<button type="button" data-v="500">500kW</button></div>
           <label class="sim-f"><span>하루 평균 발전시간 <b class="sim-v" id="sv-h">3.5</b> 시간</span><input type="range" id="s-h" min="2.8" max="4.2" step="0.1" value="3.5" aria-label="발전시간"></label>
@@ -840,6 +850,15 @@
       if (!reduceMotion) play(); else playBtn.textContent = "▶ 재생";
       cleanup.push(stop);
     }
+
+    // 설치 방식
+    {
+      const tabs = $("#md-tabs", root), det = $("#md", root);
+      const pick = (i) => { $$(".md-tab", tabs).forEach((b) => b.setAttribute("aria-selected", +b.dataset.i === i)); det.innerHTML = methodDetail(i); det.classList.remove("swap"); void det.offsetWidth; det.classList.add("swap"); };
+      tabs.addEventListener("click", (e) => { const b = e.target.closest(".md-tab"); if (b) pick(+b.dataset.i); });
+      $(".md-cmp", root).addEventListener("click", (e) => { const r = e.target.closest(".mc-row"); if (r) { pick(+r.dataset.i); $("#methods", root).scrollIntoView({ behavior: "smooth", block: "start" }); } });
+      det.addEventListener("click", (e) => { const b = e.target.closest(".md-go"); if (b) { const sb = $(`#s-meth button[data-m="${b.dataset.m}"]`, root); if (sb) sb.click(); $("#calc", root).scrollIntoView({ behavior: "smooth", block: "start" }); } });
+    }
     hero3d(root);
     // 수익 시뮬레이터
     {
@@ -852,15 +871,16 @@
       kwRows.sort((a, b) => a[0] - b[0]);
       const unitCost = (kw) => { if (kw <= kwRows[0][0]) return kwRows[0][1]; for (let i = 1; i < kwRows.length; i++) if (kw <= kwRows[i][0]) { const [a, ca] = kwRows[i - 1], [b, cb] = kwRows[i]; return ca + (cb - ca) * (kw - a) / (b - a); } return kwRows[kwRows.length - 1][1]; };
       const $i = (id) => $("#" + id, root);
-      let costTouched = false;
+      let costTouched = false, meth = 0;
       $i("s-c").addEventListener("input", () => { costTouched = true; });
+      const mCost = (kw) => unitCost(kw) * METHODS[meth].rep / METHODS[0].rep, mGen = () => METHODS[meth].gen / METHODS[0].gen;
       const num = (v) => parseFloat(String(v || "").replace(/[^\d.]/g, "")) || 0;
       const run = () => {
         const kw = +$i("s-kw").value, H = +$i("s-h").value, sc = +$i("s-sc").value / 100, price = +$i("s-p").value;
         $i("sv-kw").textContent = fmt(kw); $i("sv-h").textContent = H.toFixed(1); $i("sv-sc").textContent = Math.round(sc * 100); $i("sv-p").textContent = price;
-        if (!costTouched) $i("s-c").value = Math.round(unitCost(kw) / 10000) * 10000;
-        const uc = +$i("s-c").value || unitCost(kw), esc2 = (+$i("s-esc").value || 0) / 100, deg = (+$i("s-deg").value || 0) / 100, om = (+$i("s-om").value || 0) / 100;
-        const cost = kw * uc, gen1 = kw * H * 365, save1 = gen1 * sc * price;
+        if (!costTouched) $i("s-c").value = Math.round(mCost(kw) / 10000) * 10000;
+        const uc = +$i("s-c").value || mCost(kw), esc2 = (+$i("s-esc").value || 0) / 100, deg = (+$i("s-deg").value || 0) / 100, om = (+$i("s-om").value || 0) / 100;
+        const cost = kw * uc, gen1 = kw * H * mGen() * 365, save1 = gen1 * sc * price;
         const plans = [{ k: "자부담 100%", inv: cost, c: "var(--navy)" }, { k: "정부지원 70%", inv: cost * 0.3, c: "#12a36b" }];
         const Y = 20;
         for (const p of plans) {
@@ -874,7 +894,7 @@
         }
         const co2 = gen1 * 0.4173 / 1000, trees = co2 * 1000 / 6.6;
         $i("s-kpi").innerHTML = [
-          ["연간 발전량", fmt(gen1 / 1000, 1), "MWh", `모듈 ${fmt(Math.ceil(kw * 1000 / W))}장 · 지붕 약 ${fmt(kw * AREA)}m²`],
+          ["연간 발전량", fmt(gen1 / 1000, 1), "MWh", `모듈 ${fmt(Math.ceil(kw * 1000 / W))}장 · ${meth ? esc(METHODS[meth].area) : `지붕 약 ${fmt(kw * AREA)}m²`}`],
           ["1년차 전기요금 절감", man(save1), "원", `자가소비 ${fmt(gen1 * sc / 1000, 1)}MWh × ${price}원`],
           ["회수기간", plans[1].payback != null ? plans[1].payback.toFixed(1) : "20+", "년", `정부지원 70% 기준 · 자부담 100%면 ${plans[0].payback != null ? plans[0].payback.toFixed(1) + "년" : "20년 이상"}`],
           ["20년 누적 순이익", eok(plans[1].total), "", `자부담 100%면 ${eok(plans[0].total)}`],
@@ -899,9 +919,10 @@
           <svg class="chart" viewBox="0 0 ${Wc} ${Hc}" role="img" aria-label="20년 누적 현금흐름">${g}</svg>`;
         const bench = REP.filter((r) => r.effect && r.effect.payback).map((r) => `<span><b>${esc(norm(r.site))}</b> ${esc(r.effect.payback.value.replace("약 ", ""))} · 절감 ${esc((r.effect.saving || {}).value ? man(num(r.effect.saving.value)) + "원/년" : "–")}</span>`).join("");
         $i("s-bench").innerHTML = bench ? `<div class="sim-bench-h">실제 준공 현장 (시공완료보고서, 정부지원 70% 기준)</div><div class="sim-bench-l">${bench}</div>` : "";
-        $i("s-note").textContent = `가정: kW당 공사비 ${fmt(uc)}원(업체 공개가 기준, 지붕 보강 포함 여부에 따라 달라짐) · 요금 상승 ${(esc2 * 100).toFixed(1)}%/년 · 출력 저하 ${(deg * 100).toFixed(1)}%/년(모듈 출력보증 30년 87.4% 수준) · 유지관리비 ${(om * 100).toFixed(1)}%/년 · 배출계수 0.4173tCO₂/MWh · 소나무 1그루 연 6.6kg 흡수(국립산림과학원). 세금 · 금융비용 · 요금제 변경 효과는 넣지 않았습니다.`;
+        $i("s-note").textContent = `가정: ${METHODS[meth].name} · kW당 공사비 ${fmt(uc)}원(${meth ? "공장 지붕 공개가에 방식별 대표값 비율을 곱함, 부지비 제외" : "업체 공개가 기준, 지붕 보강 포함 여부에 따라 달라짐"}) · 발전 지수 ${METHODS[meth].gen}${meth ? " · 정부지원 70%는 건물 태양광 기준이라 이 방식은 지원 조건을 따로 확인" : ""} · 요금 상승 ${(esc2 * 100).toFixed(1)}%/년 · 출력 저하 ${(deg * 100).toFixed(1)}%/년(모듈 출력보증 30년 87.4% 수준) · 유지관리비 ${(om * 100).toFixed(1)}%/년 · 배출계수 0.4173tCO₂/MWh · 소나무 1그루 연 6.6kg 흡수(국립산림과학원). 세금 · 금융비용 · 요금제 변경 효과는 넣지 않았습니다.`;
       };
       ["s-kw", "s-h", "s-sc", "s-p", "s-c", "s-esc", "s-deg", "s-om"].forEach((id) => $i(id).addEventListener("input", run));
+      $i("s-meth").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; meth = +b.dataset.m; $$("#s-meth button", root).forEach((x) => x.setAttribute("aria-pressed", x === b)); costTouched = false; run(); });
       $i("s-pre").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { $i("s-kw").value = Math.round(+b.dataset.v); costTouched = false; run(); } });
       run();
       let rz; const onR = () => { clearTimeout(rz); rz = setTimeout(() => { if ($i("s-chart")) run(); }, 200); };
@@ -1003,7 +1024,7 @@
   let threeP = null;
   async function hero3d(root) {
     const st = $("#h3", root); if (!st || !window.SOLAR3D) return;
-    const hr = $("#h3-hr", root), tEl = $("#h3-time", root), outEl = $("#h3-out", root), dots = $("#h3-dots", root), tip = $("#h3-tip", root);
+    const hr = $("#h3-hr", root), tEl = $("#h3-time", root), outEl = $("#h3-out", root), dots = $("#h3-dots", root), tip = $("#h3-tip", root), sw = $("#h3-sw", root), poster = $(".h3-poster", st);
     const hhmm = (h) => { const H = Math.floor(h), m = Math.round((h - H) * 60 / 5) * 5; const hh = m === 60 ? H + 1 : H, mm = m === 60 ? 0 : m; return `${hh < 12 ? "오전" : "오후"} ${((hh + 11) % 12) + 1}:${String(mm).padStart(2, "0")}`; };
     let THREE;
     try { threeP = threeP || import(THREE_URL); THREE = await threeP; } catch (e) { threeP = null; st.classList.add("still"); return; }
@@ -1015,30 +1036,37 @@
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, small ? 1.5 : 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.setClearColor(0x000000, 0);
-    const S3 = SOLAR3D.create(THREE, { shot: "hero", live: true, shadowMap: small ? 1024 : 2048, hour: +hr.value });
-    S3.setupEnv(renderer);
     st.insertBefore(canvas, dots);
-    const base = { az: S3.view.az, el: S3.view.el };
-    let az = base.az, el = base.el, aspect = 1, dist = 1, dragging = false, lastX = 0, lastY = 0, idle = 0, visible = true, raf = 0, dirty = true;
-    const size = () => { const r = st.getBoundingClientRect(); aspect = r.width / Math.max(1, r.height); renderer.setSize(r.width, r.height, false); dist = S3.orbit(base.az, base.el, aspect) * 0.86; S3.orbit(az, el, aspect, dist); dirty = true; };
-    const kwp = (S3.modules || 0) * 0.645;
-    const sun = () => { const h = +hr.value, f = S3.setSun(h); tEl.textContent = hhmm(h); outEl.innerHTML = `발전 <b>${Math.round(f * 100)}%</b>${kwp ? ` · 약 ${fmt(kwp * f * 0.86, 0)}kW` : ""}`; dirty = true; };
-    // 핫스팟
-    const HS = S3.hotspots.filter((h) => EQ[h.key]);
-    dots.innerHTML = HS.map((h, i) => `<button type="button" class="h3-dot" data-i="${i}" aria-label="${esc(EQ[h.key].t)}"><i></i><span>${esc(EQ[h.key].t)}</span></button>`).join("");
-    const showTip = (i) => { const h = HS[i]; if (!h) { tip.hidden = true; return; } tip.hidden = false; tip.innerHTML = `<b>${esc(EQ[h.key].t)}</b><span>${esc(EQ[h.key].s)}</span>${EQ[h.key].tag ? `<em>${esc(EQ[h.key].tag)}</em>` : ""}`; $$(".h3-dot", dots).forEach((d) => d.classList.toggle("on", +d.dataset.i === i)); };
-    dots.addEventListener("click", (e) => { const b = e.target.closest(".h3-dot"); if (b) { e.stopPropagation(); showTip(+b.dataset.i); idle = -240; } });
+    let S3 = null, HS = [], base = { az: 30, el: 28 }, az = 30, el = 28, aspect = 1, dist = 1, dragging = false, lastX = 0, lastY = 0, idle = 0, visible = true, raf = 0, dirty = true;
     const v = new THREE.Vector3();
+    const size = () => { const r = st.getBoundingClientRect(); aspect = r.width / Math.max(1, r.height); renderer.setSize(r.width, r.height, false); if (S3) { dist = S3.orbit(base.az, base.el, aspect) * 0.86; S3.orbit(az, el, aspect, dist); } dirty = true; };
+    const sun = () => { if (!S3) return; const h = +hr.value, f = S3.setSun(h), kwp = (S3.modules || 0) * 0.645; tEl.textContent = hhmm(h); outEl.innerHTML = `발전 <b>${Math.round(f * 100)}%</b>${kwp ? ` · 약 ${fmt(kwp * f * 0.86, 0)}kW <small>(${fmt(kwp, 0)}kWp)</small>` : ""}`; dirty = true; };
+    const showTip = (i) => { const h = HS[i]; if (!h) { tip.hidden = true; return; } tip.hidden = false; tip.innerHTML = `<b>${esc(EQ[h.key].t)}</b><span>${esc(EQ[h.key].s)}</span>${EQ[h.key].tag ? `<em>${esc(EQ[h.key].tag)}</em>` : ""}`; $$(".h3-dot", dots).forEach((d) => d.classList.toggle("on", +d.dataset.i === i)); };
+    const load = (shot) => {
+      if (S3) S3.dispose();
+      S3 = SOLAR3D.create(THREE, { shot, live: true, shadowMap: small ? 1024 : 2048, hour: +hr.value });
+      S3.setupEnv(renderer);
+      base = { az: S3.view.az, el: S3.view.el }; az = base.az; el = base.el;
+      HS = S3.hotspots.filter((h) => EQ[h.key]);
+      dots.innerHTML = HS.map((h, i) => `<button type="button" class="h3-dot" data-i="${i}" aria-label="${esc(EQ[h.key].t)}"><i></i><span>${esc(EQ[h.key].t)}</span></button>`).join("");
+      tip.hidden = true; size(); sun();
+    };
+    dots.addEventListener("click", (e) => { const b = e.target.closest(".h3-dot"); if (b) { e.stopPropagation(); showTip(+b.dataset.i); idle = -240; } });
     const placeDots = () => {
       const r = st.getBoundingClientRect();
-      $$(".h3-dot", dots).forEach((d, i) => { v.copy(HS[i].pos).project(S3.camera); const on = v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1; d.style.transform = `translate(${((v.x + 1) / 2 * r.width).toFixed(1)}px, ${((1 - v.y) / 2 * r.height).toFixed(1)}px)`; d.classList.toggle("off", !on); });
+      $$(".h3-dot", dots).forEach((d, i) => { if (!HS[i]) return; v.copy(HS[i].pos).project(S3.camera); const on = v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1; d.style.transform = `translate(${((v.x + 1) / 2 * r.width).toFixed(1)}px, ${((1 - v.y) / 2 * r.height).toFixed(1)}px)`; d.classList.toggle("off", !on); });
     };
-    // 끌어서 돌리기
     st.addEventListener("pointerdown", (e) => { if (e.target.closest(".h3-dot")) return; dragging = true; lastX = e.clientX; lastY = e.clientY; st.setPointerCapture(e.pointerId); st.classList.add("drag"); $("#h3-hint", root)?.classList.add("gone"); });
     st.addEventListener("pointermove", (e) => { if (!dragging) return; az -= (e.clientX - lastX) * 0.35; el = Math.max(8, Math.min(62, el + (e.clientY - lastY) * 0.25)); lastX = e.clientX; lastY = e.clientY; idle = -300; dirty = true; });
     const up = () => { dragging = false; st.classList.remove("drag"); };
     st.addEventListener("pointerup", up); st.addEventListener("pointercancel", up);
     hr.addEventListener("input", () => { sun(); idle = -300; });
+    if (sw) sw.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b || b.getAttribute("aria-pressed") === "true") return;
+      $$("button", sw).forEach((x) => x.setAttribute("aria-pressed", x === b)); st.classList.add("switching");
+      if (poster) poster.src = `3d/${b.dataset.img}.webp`;
+      setTimeout(() => { load(b.dataset.shot); st.classList.remove("switching"); }, 180);
+    });
     const ro = new ResizeObserver(size); ro.observe(st);
     const io = new IntersectionObserver((en) => { visible = en[0].isIntersecting; if (visible && !raf) loop(); }, { threshold: 0.02 }); io.observe(st);
     let t = 0, first = true;
@@ -1046,16 +1074,109 @@
       raf = 0; if (!visible || document.hidden || !st.isConnected) return;
       t++; idle++;
       if (!dragging && idle > 0 && !reduceMotion) { const target = base.az + Math.sin(t / 420) * 24; az += (target - az) * 0.02; el += (base.el - el) * 0.02; dirty = true; }
-      if (dirty) { S3.orbit(az, el, aspect, dist); renderer.render(S3.scene, S3.camera); placeDots(); dirty = false; if (first) { first = false; st.classList.add("on3d"); } }
+      if (dirty && S3) { S3.orbit(az, el, aspect, dist); renderer.render(S3.scene, S3.camera); placeDots(); dirty = false; if (first) { first = false; st.classList.add("on3d"); } }
       raf = requestAnimationFrame(loop);
     };
     document.addEventListener("visibilitychange", () => { if (!document.hidden && visible && !raf) loop(); });
-    size(); sun(); loop();
-    cleanup.push(() => { cancelAnimationFrame(raf); raf = 0; visible = false; ro.disconnect(); io.disconnect(); S3.dispose(); renderer.dispose(); renderer.forceContextLoss(); });
+    load("hero"); loop();
+    cleanup.push(() => { cancelAnimationFrame(raf); raf = 0; visible = false; ro.disconnect(); io.disconnect(); if (S3) S3.dispose(); renderer.dispose(); renderer.forceContextLoss(); });
   }
   /* 장 · 파트 배너용 3D 그림 */
   const CH_ART = { 1: "hero", 2: "office", 3: "doc", 4: "step3", 5: "safety", 6: "survey", 7: "hero", 8: "step2", 9: "step6", 10: "doc", 11: "doc-contract", 12: "survey", 13: "doc-design", 14: "doc-permit", 15: "module", 16: "step3", 17: "safety", 18: "step6", 19: "step5", 20: "monitor", 21: "money", 22: "doc-contract", 23: "office", 24: "rpr", 25: "board", 26: "monitor", 27: "money", 28: "doc", 29: "hero", 30: "structure", 31: "doc-design", 32: "module" };
   const PART_ART = ["", "step3", "survey", "doc-permit", "money", "structure"];
+
+  /* ---------- 설치 방식 (어디에 짓나) ----------
+     금액: 100kW 안팎 · 계통연계 포함 · 부지비 제외. 업체 공개가 · 매체 · 연구 자료의 범위이며 견적 전 참고용.
+     발전 지수: 남향 30° 경사 = 100 으로 본 대략값 (경사 · 방위 손실만 반영). */
+  const METHODS = [
+    { k: "roof", img: "hero", name: "공장 · 창고 지붕", short: "지붕", sub: "골강판 지붕 위에 레일을 고정하고 모듈을 얹습니다", tag: "2026 군산 현장 방식",
+      cost: [130, 165], rep: 142, gen: 95, area: "약 4.7m²/kW", site: "기존 지붕 (부지비 없음)",
+      fit: "지붕이 넓고 낮에 전기를 많이 쓰는 공장 · 물류창고",
+      pros: ["따로 땅이 필요 없고 공사가 빠르다", "공장이 바로 쓰는 자가소비에 가장 잘 맞는다", "건물 태양광 정부 지원 대상"],
+      cons: ["지붕 상태(노후 · 석면 · 하중)에 따라 보강비가 붙는다", "관통부 누수 · 벤추레이터 그늘 관리가 필요하다"],
+      checks: ["지붕재 노후 · 석면 여부 (보강 · 철거비)", "구조검토: 모듈 · 구조물 하중을 지붕이 견디는지", "관통부 방수 처리와 사진 기록", "벤추레이터 · 채광창 그늘과 안전 (덮개 · 난간)", "건축물대장 위반건축물 여부 (인허가 거부 사유)"],
+      permit: "구조검토서, 규모에 따라 전기공사계획 신고 · 공작물 축조신고", src: "업체 공개가 30kW 164만 · 100kW 142만 · 210kW 130만원/kW (후광일렉트릭, 2026)" },
+    { k: "flat", img: "flatroof", name: "평지붕 옥상", short: "옥상", sub: "콘크리트 옥상에 경사 거치대를 세우고 무게 블록이나 앵커로 고정합니다",
+      cost: [150, 180], rep: 165, est: true, gen: 97, area: "약 7~9m²/kW (줄 사이 그림자 간격 포함)", site: "기존 옥상",
+      fit: "사무동 · 상가 · 학교처럼 평평한 옥상이 있는 건물",
+      pros: ["경사를 원하는 각도로 줄 수 있어 발전 효율이 좋다", "구멍을 내지 않는 무타공 방식을 고를 수 있다"],
+      cons: ["경사 거치대 · 무게 블록 비용이 더 든다", "줄 사이를 띄워야 해 같은 면적에 들어가는 용량이 적다"],
+      checks: ["슬래브 허용 하중 (무게 블록까지 포함해 구조검토)", "방수층 상태 · 방수 보증 범위 (설치 전 사진)", "모서리 · 가장자리 풍하중 (블록 무게 · 앵커 결정)", "동지 기준 줄 간격 (앞줄 그림자)", "실외기 · 물탱크 · 파라펫 그늘, 점검 통로 확보"],
+      permit: "구조검토서, 옥상 위 구조물 높이에 따라 공작물 축조신고 확인", src: "지붕형 단가에 경사 거치대 · 무게 기초 · 방수 보호 비용을 더한 추정 (평지붕은 경사 프레임 추가 비용 발생: 후광일렉트릭)" },
+    { k: "carport", img: "carport", name: "주차장 (카포트)", short: "주차장", sub: "주차면 위에 기둥 · 보로 지붕을 세우고 그 위에 모듈을 얹습니다", tag: "공영주차장 설치 확대 중",
+      cost: [150, 200], rep: 175, gen: 93, area: "주차 1면(2.5×5m)에 약 2.5~3kW", site: "기존 주차장 (주차면 유지)",
+      fit: "넓은 직원 주차장이 있는 공장 · 공공기관 · 대형 매장",
+      pros: ["주차장을 그대로 쓰면서 발전 (그늘 · 비 가림 효과)", "전기차 충전기와 함께 설치하기 좋다"],
+      cons: ["기둥 · 보 · 기초를 새로 세워 지붕형보다 비싸다", "차량 충돌 · 적설 · 배수까지 설계해야 한다"],
+      checks: ["주차면 수와 차로 폭 유지 (기둥 위치를 주차선에 맞춤)", "높이 2.5m 이상 · 화물차 · 소방차 진입 높이", "기초 자리 아래 배관 · 전선 매설물 조사", "적설 · 풍하중 구조계산, 차량 충돌 보호대", "빗물받이 · 홈통 배수, 조명 · CCTV 재설치", "건축물 해당 여부 · 공작물 축조신고를 지자체에 확인"],
+      permit: "구조계산서, 지자체 건축 부서에 건축물 · 공작물 해당 여부 확인", src: "일반 지상형보다 설치비가 약 30~40% 높다는 분석 (솔라투데이) 을 지상형 단가에 적용" },
+    { k: "ground", img: "ground", name: "지상 (토지 · 노지)", short: "지상", sub: "땅에 기초를 박고 최적 경사로 여러 줄을 세웁니다",
+      cost: [110, 140], rep: 125, gen: 100, area: "약 10~15m²/kW (줄 간격 포함)", site: "토지 매입 · 임대 별도",
+      fit: "공장 옆 유휴 부지, 전기를 파는 발전사업",
+      pros: ["kW당 공사비가 가장 낮은 편이다", "경사 · 방위를 최적으로 잡아 발전량이 많다"],
+      cons: ["토지비 · 토목 · 인허가비가 따로 든다", "개발행위허가 · 이격거리 · 주민 민원 변수가 크다"],
+      checks: ["토지 지목 (농지 · 임야면 전용 허가 · 부담금)", "지자체 이격거리 조례 (도로 · 주거지)", "토목: 절토 · 성토, 배수로, 옹벽, 침수 이력", "계통 접속 여유 (변전소 · 배전선로 용량)", "펜스 · 출입문 · 잡초 관리, 주민 설명"],
+      permit: "개발행위허가, 농지 · 산지 전용, 발전사업허가(판매 시)", src: "100kW 약 1.1~1.4억원 (해줌 · 한국에너지가이드, 2026). 인허가 · 토목 · 울타리는 별도인 경우가 많음" },
+    { k: "agri", img: "agri", name: "영농형 (농지 위)", short: "영농형", sub: "농지 위에 높은 구조물을 세워 농사와 발전을 함께 합니다",
+      cost: [130, 160], rep: 145, gen: 100, area: "줄 간격을 넓혀 땅의 약 30% 안팎만 덮음", site: "농지 (농사 계속)",
+      fit: "농가 · 농업법인, 공장 주변 농지",
+      pros: ["농사를 계속하면서 추가 수입", "농촌 태양광 금융지원 대상이 될 수 있다"],
+      cons: ["농기계가 지나가도록 구조물이 높아 공사비가 오른다", "농지 사용 기간 · 수확량 유지 조건이 붙는다"],
+      checks: ["농지 타용도 일시사용 허가 기간과 갱신 조건", "하부 작물 수확량 유지 의무 · 확인 방법", "구조물 높이 · 기둥 간격 (농기계 통과)", "작물에 닿는 빛 (모듈 간격 · 배치)", "농민 참여 · 수익 배분 구조"],
+      permit: "농지 타용도 일시사용 허가, 개발행위허가", src: "100~300kW 기준 kW당 130~160만원 (한국에너지가이드, 2026), 2021 연구 kW당 159만원 (한국신재생에너지학회지)" },
+    { k: "floating", img: "floating", name: "수상 (저수지 · 호수)", short: "수상", sub: "물 위에 부력체를 띄우고 그 위에 모듈을 얹은 뒤 줄로 고정합니다",
+      cost: [160, 200], rep: 179, est: true, gen: 97, area: "수면 사용 (땅 불필요)", site: "수면 사용 허가 · 점용료",
+      fit: "농업용 저수지 · 댐 · 정수장을 가진 공공기관 · 대규모 사업",
+      pros: ["땅을 쓰지 않고, 물이 모듈을 식혀 효율이 조금 오를 수 있다", "주변에 가리는 것이 없어 그늘이 적다"],
+      cons: ["부력체 · 계류 공사로 단가가 높다", "수위 변화 · 결빙 · 부식 관리가 필요하다"],
+      checks: ["수면 관리자 사용 허가 (농어촌공사 · 지자체 등)", "수위 변동 · 결빙 · 태풍에 맞는 계류(앵커 · 줄) 설계", "수질 · 생태 영향 검토", "부력체 재질 인증 · 내구성", "점검용 보트 · 통로, 감전 안전"],
+      permit: "공유수면 · 저수지 사용 허가, 환경 영향 검토", src: "2021 연구 3MW 기준 kW당 약 179만원 (한국환경공학회지). 최근 단가 자료가 적어 범위는 추정" },
+    { k: "wall", img: "wall", name: "건물 벽면 (BAPV · BIPV)", short: "벽면", sub: "남쪽 벽에 모듈을 붙이거나(BAPV), 외장재 자체를 모듈로 만듭니다(BIPV)",
+      cost: [170, 180], rep: 175, gen: 65, area: "벽 면적 (남향 벽)", site: "기존 건물 벽",
+      fit: "지붕이 좁은 고층 건물 · 사옥, 건물 디자인을 함께 바꾸는 신축",
+      pros: ["지붕이 모자랄 때 추가 용량을 확보", "BIPV는 외장재를 대신해 건물 디자인 요소가 된다"],
+      cons: ["세워 붙여 발전량이 지붕의 약 60~70% 수준", "BIPV는 일반 모듈보다 2~3배 비싸다"],
+      checks: ["벽 방위 (남향 · 동서향), 주변 건물 그늘", "앵커 · 브래킷 풍하중 구조검토", "외장재 화재 안전 기준 (불연 · 준불연)", "창 가림 · 미관 · 반사광 민원", "고소작업 · 유지보수 접근 방법"],
+      permit: "구조검토, 건축물 외장 변경 시 건축 부서 확인", src: "BAPV kW당 약 170~180만원, BIPV는 일반 태양광 대비 2~3배 (정책 기사, 2026)" },
+  ];
+  const METHOD_SRC = [
+    ["후광일렉트릭 — 공장 지붕 태양광 설치 비용 (2026)", "https://hugwangsolar.co.kr/posts/factory-roof-solar-installation-cost-comparison-2026"],
+    ["한국에너지가이드 — 2026년 태양광 설치 비용", "https://koreaenergy.kr/2026%EB%85%84-%ED%83%9C%EC%96%91%EA%B4%91-%EC%84%A4%EC%B9%98-%EB%B9%84%EC%9A%A9-%EC%B4%9D%EC%A0%95%EB%A6%AC-kw%EB%8B%B9-%EB%8B%A8%EA%B0%80%EB%B6%80%ED%84%B0-%EC%8B%A4%ED%88%AC%EC%9E%90/"],
+    ["해줌 — 2026 태양광 사업 가이드", "https://blog.haezoom.com/insight_rps_11/"],
+    ["솔라투데이 — 주차장 태양광, 의무화 넘어 가치 설계로", "https://www.solartodaymag.com/news/articleView.html?idxno=20952"],
+    ["한국 태양광 발전 산업의 진흥을 위한 제안 (건물 · 영농형 · 수상 CAPEX)", "https://www.jksee.or.kr/journal/view.php?viewtype=pubreader&number=4518"],
+    ["영농형 태양광 경제성 제고를 위한 정책 방안", "https://journalksnre.com/xml/40085/40085.pdf"],
+    ["네이트 뉴스 — BIPV, 도심의 게임 체인저 (2026)", "https://m.news.nate.com/view/20260405n09027"],
+  ];
+  function methodDetail(i) {
+    const m = METHODS[i];
+    return `<div class="md-pic"><img class="r3d" src="3d/${m.img}.webp" alt="${esc(m.name)} 3D 모델" decoding="async">
+        <div class="md-badges"><span><small>kW당 공사비</small><b>${m.cost[0]}~${m.cost[1]}<em>만원</em></b>${m.est ? `<i>추정</i>` : ""}</span><span><small>100kW 총액</small><b>${(m.cost[0] / 100).toFixed(1)}~${(m.cost[1] / 100).toFixed(1)}<em>억</em></b></span><span><small>발전 지수</small><b>${m.gen}</b></span></div></div>
+      <div class="md-body">
+        <div class="md-h">${m.tag ? `<span class="chip">${esc(m.tag)}</span>` : ""}<h3>${esc(m.name)}</h3><p>${esc(m.sub)}</p></div>
+        <dl class="md-kv"><dt>이런 곳에</dt><dd>${esc(m.fit)}</dd><dt>필요 면적</dt><dd>${esc(m.area)}</dd><dt>부지</dt><dd>${esc(m.site)}</dd><dt>인허가</dt><dd>${esc(m.permit)}</dd></dl>
+        <div class="md-pc"><div><b class="ok">좋은 점</b><ul>${m.pros.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div><div><b class="ng">부담</b><ul>${m.cons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div></div>
+        <div class="md-ck"><b>${icon("check", 16)} 이 방식이면 더 확인할 것</b><ol>${m.checks.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
+        <p class="from md-src">금액 근거: ${esc(m.src)}</p>
+        <button type="button" class="btn primary md-go" data-m="${i}">이 방식으로 수익 계산 →</button>
+      </div>`;
+  }
+  function methodCompare() {
+    const lo = 100, hi = 210, X = (v) => ((v - lo) / (hi - lo) * 100).toFixed(2) + "%";
+    const ticks = [100, 125, 150, 175, 200];
+    return `<div class="mc-chart" role="img" aria-label="설치 방식별 kW당 공사비 범위">
+      <div class="mc-axis">${ticks.map((t) => `<span style="left:${X(t)}">${t}만</span>`).join("")}</div>
+      ${METHODS.map((m, i) => `<button type="button" class="mc-row" data-i="${i}"><span class="mc-n"><img src="3d/${m.img}.webp" alt="" loading="lazy">${esc(m.short)}</span>
+        <span class="mc-track">${ticks.map((t) => `<i class="mc-grid" style="left:${X(t)}"></i>`).join("")}<span class="mc-bar ${m.est ? "est" : ""}" style="left:${X(m.cost[0])};width:calc(${X(m.cost[1])} - ${X(m.cost[0])})"></span><span class="mc-dot" style="left:${X(m.rep)}"><b>${m.rep}</b></span></span>
+        <span class="mc-g"><i style="width:${m.gen}%"></i><b>${m.gen}</b></span></button>`).join("")}
+      <div class="mc-foot"><span><i class="mc-bar-k"></i> kW당 공사비 범위 (만원, 100kW 안팎 · 부지비 제외)</span><span><i class="mc-bar-k est"></i> 자료가 적어 추정</span><span><i class="mc-dot-k"></i> 대표값</span><span><i class="mc-g-k"></i> 발전 지수 (남향 30° = 100)</span></div>
+    </div>
+    <div class="tbl"><table class="mc-table"><thead><tr><th>방식</th><th>kW당</th><th>100kW 총액</th><th>발전 지수</th><th>부지</th><th>가장 먼저 확인</th></tr></thead><tbody>
+      ${METHODS.map((m) => `<tr><td><b>${esc(m.name)}</b></td><td class="num">${m.cost[0]}~${m.cost[1]}만${m.est ? "<sup>추정</sup>" : ""}</td><td class="num">${(m.cost[0] / 100).toFixed(1)}~${(m.cost[1] / 100).toFixed(1)}억</td><td class="num">${m.gen}</td><td>${esc(m.site)}</td><td>${esc(m.checks[0])}</td></tr>`).join("")}
+    </tbody></table></div>
+    <p class="from mc-note">금액은 업체 공개가 · 매체 · 연구 자료의 범위로, 지붕 보강 · 토목 · 토지비 · 인허가비 포함 여부에 따라 크게 달라집니다. 실제 판단은 현장 실사와 3곳 이상 견적으로 합니다. 판매 사업(REC)이라면 방식별 REC 가중치도 다르니 현행 고시를 확인하세요.</p>
+    <p class="from mc-src">출처: ${METHOD_SRC.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join(" · ")}</p>`;
+  }
   function linkify(h) {
     // "PART 1(1~5장)", "7장", "12장, 13장" → 링크
     return deco(h).replace(/(\d{1,2})장/g, (m, n) => chByNum(+n) ? `<a href="#ch${n}">${m}</a>` : m);

@@ -383,7 +383,7 @@
       const r = Math.min(w, d) * 0.12, th = o.th || 1.2;
       const geo = keep(new THREE.ExtrudeGeometry(rrShape(w, d, r), { depth: th, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.15, bevelSegments: 3, curveSegments: 16 }));
       geo.rotateX(Math.PI / 2); geo.translate(0, 0, 0);
-      const base = mesh(geo, [M.grass, M.soil], g, 0, -0.02, 0); base.castShadow = true;
+      const base = mesh(geo, [M.grass, M.soil], g, 0, -0.17, 0); base.castShadow = true;
       if (o.yard) { const yg = keep(new THREE.ShapeGeometry(rrShape(o.yard[0], o.yard[1], 0.6), 8)); yg.rotateX(-Math.PI / 2); const y = mesh(yg, M.asphalt, g, o.yard[2] || 0, 0.035, o.yard[3] || 0, false); y.receiveShadow = true;
         if (o.lines) for (let i = 0; i < o.lines; i++) box(0.12, 0.01, 2.4, M.line, g, (o.yard[2] || 0) - o.yard[0] / 2 + 3 + i * 2.8, 0.045, (o.yard[3] || 0) + o.yard[1] / 2 - 1.8, false);
       }
@@ -625,6 +625,148 @@
         box(1.2, 2.2, 0.1, M.cabinetDark, b, 3.4, 1.1, 2.53);
         tree(root, -5.2, 2.6, 0.55, 1); tree(root, 5.3, 2.8, 0.6, 0);
         view = { az: 30, el: 14, fov: 26, margin: 1.08 }; shadowSize = 18; break;
+      }
+      case "flatroof": {
+        island(root, 44, 34, { yard: [40, 9, 0, 11.5], lines: 12 });
+        const b = group(root, 0, 0, -3.5);
+        const BW = 28, BD = 18, BH = 10.5;
+        const wt = wallTex.clone(); wt.needsUpdate = true; wt.repeat.set(1, 3); keep(wt);
+        box(BW, BH, BD, std({ map: wt, roughness: 0.6 }), b, 0, BH / 2, 0);
+        for (let f = 0; f < 3; f++) { box(BW - 2, 1.3, 0.1, M.glass, b, 0, 1.9 + f * 3.2, BD / 2 + 0.06); box(BW - 1.6, 0.18, 0.3, M.wallBand, b, 0, 1.15 + f * 3.2, BD / 2 + 0.12); box(0.1, 1.3, BD - 2, M.glass, b, BW / 2 + 0.06, 1.9 + f * 3.2, 0); }
+        box(4, 2.6, 0.12, M.cabinetDark, b, -BW / 2 + 4, 1.3, BD / 2 + 0.08);
+        box(BW - 0.6, 0.12, BD - 0.6, M.concrete, b, 0, BH + 0.06, 0, false);
+        for (const [w, d, x, z] of [[BW, 0.3, 0, BD / 2 - 0.15], [BW, 0.3, 0, -BD / 2 + 0.15], [0.3, BD, BW / 2 - 0.15, 0], [0.3, BD, -BW / 2 + 0.15, 0]]) box(w, 0.9, d, M.cabinet, b, x, BH + 0.45, z);
+        // 경사 거치대 + 무게 블록 (무타공)
+        const tilt = 0.26, rows = 4, list = [];
+        for (let r = 0; r < rows; r++) {
+          const z = -BD / 2 + 2.6 + r * 3.6;
+          for (let c = 0; c < 20; c++) { const x = -BW / 2 + 2.6 + c * 1.16; if (x > BW / 2 - 6.5 && r < 2) continue; list.push([x, BH + 0.62, z, tilt, 0]); }
+          for (let x = -BW / 2 + 2.4; x < BW / 2 - 2; x += 2.3) { if (x > BW / 2 - 6.5 && r < 2) continue; box(0.5, 0.18, 0.5, M.concrete, b, x, BH + 0.21, z - 0.95); box(0.5, 0.18, 0.5, M.concrete, b, x, BH + 0.21, z + 0.95); box(0.05, 0.75, 0.05, M.aluDark, b, x, BH + 0.62, z - 0.95); box(0.05, 0.3, 0.05, M.aluDark, b, x, BH + 0.42, z + 0.95); }
+        }
+        moduleArray(b, list); moduleCount += list.length;
+        // 실외기 · 물탱크
+        for (let i = 0; i < 3; i++) { const u = group(b, BW / 2 - 4.6 + (i % 2) * 2.2, BH + 0.12, -BD / 2 + 2.4 + Math.floor(i / 2) * 2.4); rbox(1.8, 1.1, 1.2, 0.08, M.white, u, 0, 0.55, 0); const fan = cyl(0.42, 0.42, 0.06, M.black, u, 0, 1.12, 0, 24); }
+        cyl(1.1, 1.1, 2.2, M.cabinet, b, BW / 2 - 3.5, BH + 1.2, BD / 2 - 3, 28);
+        tree(root, -19, 3, 0.9, 0); tree(root, 18.5, -12, 1, 1); tree(root, -18, -13, 1, 1);
+        car(root, -12, 11.5, 0, 0x2b3a55); car(root, -6.4, 11.5, 0, 0xf2f4f7); car(root, 3, 11.5, 0, 0x8a96a8); car(root, 9, 11.5, 0, 0xc8102e);
+        hotspots.push({ key: "module", pos: new THREE.Vector3(-4, BH + 1.2, -3.5) });
+        view = { az: 30, el: 30, fov: 28, margin: 1.0 }; shadowSize = 36; break;
+      }
+      case "carport": {
+        island(root, 46, 32, { yard: [42, 28, 0, 0] });
+        const colors = [0xf2f4f7, 0x2b3a55, 0xc8102e, 0x8a96a8, 0x1b1f27, 0xe7e9ee, 0x3a6ad1, 0xf2f4f7, 0x5d6878];
+        let ci = 0; const list = [];
+        for (const zc of [-6.5, 6.5]) {
+          // 주차선
+          for (let i = 0; i <= 14; i++) box(0.12, 0.01, 5, M.line, root, -17.5 + i * 2.5, 0.05, zc + (zc < 0 ? -0.2 : 0.2), false);
+          // 캐노피: 기둥 · 보 · 모듈 (남쪽으로 약 7도)
+          const cg = group(root, 0, 0, zc);
+          for (let x = -15; x <= 15; x += 7.5) { box(0.32, 3.1, 0.32, M.cabinetDark, cg, x, 1.55, -0.6); box(0.6, 0.15, 0.6, M.concrete, cg, x, 0.08, -0.6, false); box(0.22, 0.32, 6.2, M.cabinetDark, cg, x, 3.2, 0.1).rotation.x = 0.12; }
+          for (const z of [-2.3, 0, 2.3]) box(32, 0.12, 0.12, M.steel, cg, 0, 3.32 - z * 0.12, z);
+          for (let c = 0; c < 27; c++) for (let r = 0; r < 2; r++) list.push([-15.1 + c * 1.16, 3.5 - (r - 0.5) * 2.4 * 0.12, zc + (r - 0.5) * 2.42, 0.12, 0]);
+          for (let i = 0; i < 14; i++) { if ((i + (zc > 0 ? 1 : 0)) % 4 === 3) continue; car(root, -16.25 + i * 2.5, zc + (zc < 0 ? -0.3 : 0.3), zc < 0 ? Math.PI / 2 * 0 : Math.PI, colors[ci++ % colors.length]).scale.setScalar(0.92); }
+        }
+        moduleArray(root, list); moduleCount += list.length;
+        // 전기차 충전기
+        const ev = group(root, 17.8, 0, -3.2); rbox(0.5, 1.5, 0.3, 0.08, M.white, ev, 0, 0.75, 0); box(0.3, 0.2, 0.02, M.screen, ev, 0, 1.15, 0.16); sph(0.03, M.greenLed, ev, 0, 1.38, 0.15);
+        tree(root, -21, 12, 0.8, 1); tree(root, 21, 12, 0.9, 0); tree(root, -21, -12.5, 0.9, 0); tree(root, 21, -12.5, 0.8, 1);
+        hotspots.push({ key: "module", pos: new THREE.Vector3(0, 4.2, 6.5) });
+        view = { az: 32, el: 30, fov: 28, margin: 1.0 }; shadowSize = 34; break;
+      }
+      case "ground": {
+        island(root, 60, 42);
+        const gravel = noiseTex("#b9b3a6", 0.2); gravel.wrapS = gravel.wrapT = THREE.RepeatWrapping; gravel.repeat.set(0.2, 0.2);
+        const gm = std({ map: gravel, roughness: 0.95 });
+        const rg = keep(new THREE.ShapeGeometry(rrShape(4, 38, 0.5), 4)); rg.rotateX(-Math.PI / 2); mesh(rg, gm, root, 27.5, 0.04, 0, false);
+        const list = [], tilt = 0.44;
+        for (let r = 0; r < 6; r++) {
+          const z = -15 + r * 5.6;
+          for (let c = 0; c < 36; c++) for (let k = 0; k < 2; k++) list.push([-21 + c * 1.16, 1.25 + (k - 0.5) * -2.42 * Math.sin(tilt) + 0.0, z + (k - 0.5) * 2.42 * Math.cos(tilt), tilt, 0]);
+          for (let x = -21; x <= 20; x += 3.5) { cyl(0.05, 0.05, 1.0, M.steel, root, x, 0.5, z + 2.1, 10); cyl(0.05, 0.05, 2.2, M.steel, root, x, 1.1, z - 2.1, 10); }
+        }
+        moduleArray(root, list); moduleCount += list.length;
+        // 펜스
+        const fenceMat = std({ color: 0x3f6f52, roughness: 0.6, metalness: 0.3, transparent: true, opacity: 0.45 });
+        const FX = 25, FZ = 19;
+        for (let x = -FX; x <= FX; x += 3.125) for (const z of [-FZ, FZ]) cyl(0.04, 0.04, 1.9, M.steel, root, x, 0.95, z, 8);
+        for (let z = -FZ; z <= FZ; z += 3.17) for (const x of [-FX, FX]) cyl(0.04, 0.04, 1.9, M.steel, root, x, 0.95, z, 8);
+        box(2 * FX, 1.7, 0.02, fenceMat, root, 0, 0.95, FZ, false); box(2 * FX, 1.7, 0.02, fenceMat, root, 0, 0.95, -FZ, false); box(0.02, 1.7, 2 * FZ, fenceMat, root, -FX, 0.95, 0, false); box(0.02, 1.7, 2 * FZ - 5, fenceMat, root, FX, 0.95, -2.5, false);
+        // 인버터 · 변압기 스키드
+        const sk = group(root, 27.2, 0, -12); rbox(2.4, 2.6, 6, 0.1, M.white, sk, 0, 1.4, 0); box(2.5, 0.15, 6.1, M.wallBand, sk, 0, 2.75, 0); for (let i = 0; i < 4; i++) box(0.02, 1.8, 1.1, M.offWhite, sk, -1.22, 1.3, -2.1 + i * 1.4);
+        const tr = group(root, 27.2, 0, -5.5); rbox(1.8, 2.0, 2.2, 0.1, M.polyGrey, tr, 0, 1.0, 0); for (let i = 0; i < 6; i++) box(0.04, 1.6, 2.0, M.steel, tr, -0.95, 1.0, -0.8 + i * 0.32).rotation.y = 0;
+        pole(root, 27.5, 14, {});
+        [[-28, -17, 1.1, 1], [-28.5, -6, 1, 0], [-28, 8, 1.2, 1], [-27, 17, 1, 0], [-10, 20.2, 0.8, 0], [10, -20.2, 0.9, 1]].forEach(([x, z, s, k]) => tree(root, x, z, s, k));
+        hotspots.push({ key: "module", pos: new THREE.Vector3(-2, 2.6, 0) }, { key: "inverter", pos: new THREE.Vector3(27.2, 3.2, -12) }, { key: "grid", pos: new THREE.Vector3(27.5, 9, 14) });
+        view = { az: 32, el: 32, fov: 28, margin: 1.0 }; shadowSize = 42; break;
+      }
+      case "agri": {
+        island(root, 50, 36);
+        const field = std({ color: 0x8a6a4c, roughness: 0.95 });
+        const fg = keep(new THREE.ShapeGeometry(rrShape(42, 28, 1), 4)); fg.rotateX(-Math.PI / 2); mesh(fg, field, root, 0, 0.03, 0, false);
+        const crop = std({ color: 0x5ea042, roughness: 0.85 }), crop2 = std({ color: 0x7cba4f, roughness: 0.85 });
+        for (let i = 0; i < 18; i++) { const r = box(40, 0.45, 0.7, i % 2 ? crop : crop2, root, 0, 0.25, -12.8 + i * 1.5); }
+        // 높은 구조물 + 띄엄띄엄 모듈 (빛이 작물에 닿도록)
+        const list = [], tilt = 0.44, H = 3.6;
+        for (let r = 0; r < 5; r++) {
+          const z = -11 + r * 5.5;
+          for (let c = 0; c < 30; c++) list.push([-17.4 + c * 1.2, H + 0.4, z, tilt, 0]);
+          for (let x = -17.5; x <= 17.5; x += 5) { box(0.14, H + 0.3, 0.14, M.steel, root, x, (H + 0.3) / 2, z); box(0.5, 0.1, 0.5, M.concrete, root, x, 0.05, z, false); }
+          box(36, 0.12, 0.12, M.steel, root, 0, H, z);
+        }
+        moduleArray(root, list); moduleCount += list.length;
+        for (let x = -17.5; x <= 17.5; x += 5) box(0.1, 0.1, 22, M.steel, root, x, H - 0.1, 0);
+        // 트랙터
+        const t = group(root, -4, 0, 5.2); t.rotation.y = Math.PI / 2;
+        const tp = phys({ color: 0x1f8a4c, roughness: 0.35, metalness: 0.3, clearcoat: 0.6 });
+        rbox(1.4, 0.9, 2.6, 0.12, tp, t, 0, 1.0, 0); rbox(1.2, 1.1, 1.2, 0.1, M.glass, t, 0, 1.95, -0.4);
+        for (const [z, r, w] of [[-0.8, 0.75, 0.4], [1.0, 0.45, 0.3]]) for (const s of [-1, 1]) { const wh = cyl(r, r, w, M.rubber, t, s * 0.85, r, z, 20); wh.rotation.z = Math.PI / 2; }
+        worker(root, 8, 7.8, { ry: 0.6, vest: std({ color: 0x3a6ad1, roughness: 0.7 }), hat: std({ color: 0xf5d37a, roughness: 0.7 }) });
+        tree(root, -23, -14, 1, 0); tree(root, 23, 14, 1, 1); tree(root, 23, -14, 0.9, 0);
+        hotspots.push({ key: "module", pos: new THREE.Vector3(0, H + 1, 0) });
+        view = { az: 32, el: 26, fov: 28, margin: 1.0 }; shadowSize = 34; break;
+      }
+      case "floating": {
+        island(root, 54, 40);
+        const water = phys({ color: 0x2f74a8, roughness: 0.06, metalness: 0.0, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.4 });
+        const wg = keep(new THREE.ShapeGeometry(rrShape(46, 32, 6), 24)); wg.rotateX(-Math.PI / 2); mesh(wg, water, root, -1, 0.05, 0, false).receiveShadow = true;
+        const bank = keep(new THREE.ShapeGeometry(rrShape(47.4, 33.4, 6.5), 24)); bank.rotateX(-Math.PI / 2); mesh(bank, std({ color: 0xa69479, roughness: 0.95 }), root, -1, 0.035, 0, false);
+        const list = [], tilt = 0.21;
+        const blocks = [[-9, -3, 16, 6], [9.5, -3, 14, 6], [0, 7.5, 22, 3]];
+        for (const [bx, bz, cols, rows] of blocks) {
+          for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+            const x = bx + (c - (cols - 1) / 2) * 1.2, z = bz + (r - (rows - 1) / 2) * 2.75;
+            list.push([x, 0.55, z, tilt, 0]);
+            box(1.1, 0.28, 2.0, M.white, root, x, 0.2, z + 0.1);
+          }
+          for (let r = 0; r <= rows; r++) box(cols * 1.2, 0.18, 0.45, M.offWhite, root, bx, 0.15, bz + (r - rows / 2) * 2.75 - 0.25);
+        }
+        moduleArray(root, list); moduleCount += list.length;
+        for (const [a, b] of [[[-18, 0.2, -12], [-23, 0.4, -16]], [[19, 0.2, -12], [23, 0.4, -16]], [[-18, 0.2, 6], [-23, 0.4, 12]], [[19, 0.2, 6], [23, 0.4, 12]]]) { wire(a, b, -0.05, 0.03, M.yellow, root); cyl(0.12, 0.12, 1.2, M.wood, root, b[0], 0.6, b[2], 10); }
+        const hut = group(root, 24.5, 0, 0); rbox(3, 2.6, 4, 0.1, M.white, hut, 0, 1.3, 0); box(3.2, 0.2, 4.2, M.wallBand, hut, 0, 2.7, 0);
+        wire([12.5, 0.5, 0.5], [23, 1.2, 0], 0.2, 0.04, M.cableBlack, root);
+        [[-25, -17, 1, 1], [-25.5, 15, 1.1, 0], [10, -18.6, 0.9, 0], [-8, 18.6, 1, 1], [25, 15, 1, 0]].forEach(([x, z, s, k]) => tree(root, x, z, s, k));
+        const boat = group(root, -14, 0.12, 11.5); rbox(1.2, 0.35, 3, 0.15, phys({ color: 0xff7a1a, roughness: 0.4, clearcoat: 0.5 }), boat, 0, 0.1, 0); boat.rotation.y = 0.5;
+        hotspots.push({ key: "module", pos: new THREE.Vector3(-9, 1.2, -3) });
+        view = { az: 30, el: 30, fov: 28, margin: 1.0 }; shadowSize = 36; break;
+      }
+      case "wall": {
+        island(root, 26, 20, { th: 0.9, yard: [22, 5, 0, 6.5], lines: 7 });
+        const b = group(root, 0, 0, -2);
+        const W = 18, D = 10, H = 12;
+        const wt = wallTex.clone(); wt.needsUpdate = true; wt.repeat.set(1, 3.5); keep(wt);
+        box(W, H, D, std({ map: wt, roughness: 0.6 }), b, 0, H / 2, 0);
+        box(W + 0.3, 0.5, D + 0.3, M.wallBand, b, 0, H + 0.25, 0);
+        const list = [];
+        for (let r = 0; r < 3; r++) for (let c = 0; c < 13; c++) list.push([-7 + c * 1.16, 5.0 + r * 2.5, D / 2 + 0.35, Math.PI / 2 - 0.15, 0]);
+        moduleArray(b, list); moduleCount += list.length;
+        for (let r = 0; r < 3; r++) box(W - 2.4, 0.08, 0.3, M.aluDark, b, 0, 4.0 + r * 2.5, D / 2 + 0.15);
+        for (let c = 0; c < 5; c++) box(2.2, 1.5, 0.08, M.glass, b, -6.6 + c * 3.3, 1.9, D / 2 + 0.05);
+        box(1.6, 2.4, 0.1, M.cabinetDark, b, 7.4, 1.2, D / 2 + 0.06);
+        for (let c = 0; c < 2; c++) box(0.08, 1.5, 2.6, M.glass, b, W / 2 + 0.05, 2 + c * 4, -1);
+        tree(root, -11, 4, 0.7, 1); tree(root, 11.2, 4, 0.75, 0); tree(root, -11, -7, 0.8, 0);
+        car(root, -6, 6.5, 0, 0xf2f4f7); car(root, 3, 6.5, 0, 0x2b3a55);
+        hotspots.push({ key: "module", pos: new THREE.Vector3(0, 7.5, 3.6) });
+        view = { az: 26, el: 16, fov: 28, margin: 1.0 }; shadowSize = 22; break;
       }
       default: {
         if (S.startsWith("doc")) {

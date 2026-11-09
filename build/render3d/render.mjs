@@ -16,6 +16,7 @@ const FONT = path.join(ROOT, "build/.cache/docxfonts/Pretendard-Bold.ttf");
 const SHOTS = [
   ["hero", 1800, 1100, { pad: 0.02 }],
   ["survey", 1200, 800], ...[0, 1, 2, 3, 4, 5, 6].map((k) => [`step${k}`, 1200, 800]),
+  ["flatroof", 1200, 800], ["carport", 1200, 800], ["ground", 1200, 800], ["agri", 1200, 800], ["floating", 1200, 800], ["wall", 1200, 800],
   ["module", 960, 720], ["inverter", 960, 720], ["board", 960, 720], ["rpr", 960, 720], ["grid", 960, 720],
   ["structure", 960, 720], ["combiner", 960, 720], ["cable", 960, 720], ["monitor", 960, 720], ["safety", 960, 720],
   ["money", 960, 720], ["office", 960, 720], ["tower", 960, 720], ["bapv", 960, 720],
