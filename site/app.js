@@ -66,6 +66,7 @@
     alert: '<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>',
     hand: '<path d="M3 12l4-4 4 3 3-3 7 6-4 4-3-2-2 2-3-3-2 2z"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+    pointer: '<path d="M9 11V5a2 2 0 0 1 4 0v5m0 0V8a2 2 0 0 1 4 0v4m0-1a2 2 0 0 1 4 0v3a7 7 0 0 1-7 7h-1a6 6 0 0 1-5-2.7L4.5 14a2 2 0 0 1 3.2-2.4L9 13"/>',
     pencil: '<path d="M4 20h4L20 8l-4-4L4 16z"/><path d="M14 6l4 4"/>',
     doc: '<path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h8M9 17h8"/>',
     box: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
@@ -319,13 +320,15 @@
     block: '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="#c43b3b"/><path d="M16 16l16 16M32 16L16 32" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>',
     doc: '<svg viewBox="0 0 48 48"><rect x="6" y="6" width="36" height="36" rx="10" fill="#0f1b33"/><path d="M17 13h10l5 5v17H17z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><path d="M21 24h8M21 29h6" stroke="#ffc94a" stroke-width="2.4" stroke-linecap="round"/></svg>',
   };
-  // 장비 일러스트 (site/illust.js) — 없으면 사진으로
-  const ILLMAP = window.ILL ? {
-    module: () => ILL.module(), inverter: () => ILL.inverter(), board: () => ILL.board(), factory: () => ILL.plant(), grid: () => ILL.pole(), rpr: () => ILL.relay(),
-    structure: () => ILL.structure(), combiner: () => ILL.combiner(), cable: () => ILL.cable(), monitor: () => ILL.monitor(), safety: () => ILL.safety(),
-    roof: () => ILL.module(), roof2: () => ILL.plant(), money: () => ILL.coin(), tower: () => ILL.office("#e8504f", "", true), office: () => ILL.office("#3266ff", ""),
-    doc: () => ILL.documentPaper(), bapv: () => ILL.bapv(),
-  } : {};
+  // 장비 그림: 3D 렌더 (site/3d)
+  // 3D 렌더 이미지 (site/3d, build/render3d/render.mjs 로 생성)
+  const R3 = (k, alt = "") => `<img class="r3d" src="3d/${k}.webp" alt="${esc(alt)}" loading="lazy" decoding="async">`;
+  const ILLMAP = {
+    module: () => R3("module", "태양광 모듈"), inverter: () => R3("inverter", "인버터"), board: () => R3("board", "수배전반"), factory: () => R3("hero", "공장"), grid: () => R3("grid", "한전 전주"), rpr: () => R3("rpr", "역전력계전기"),
+    structure: () => R3("structure", "구조물"), combiner: () => R3("combiner", "접속반"), cable: () => R3("cable", "케이블"), monitor: () => R3("monitor", "모니터링"), safety: () => R3("safety", "안전시설"),
+    roof: () => R3("module"), roof2: () => R3("hero"), money: () => R3("money"), tower: () => R3("tower"), office: () => R3("office"),
+    doc: () => R3("doc"), bapv: () => R3("bapv"),
+  };
   const eqImg = (k) => ILLMAP[k] ? ILLMAP[k]() : (EQ[k] ? `<img src="${EQ[k].src}" alt="${esc(EQ[k].t)}" loading="lazy">` : "");
   function photoFlow() {
     const card = (k, n) => `<figure class="pf-card" data-node="${k}"><div class="pf-img">${eqImg(k)}<span class="pf-n">${n}</span><span class="pf-tag ${k === "module" || k === "inverter" ? "dc" : "ac"}">${EQ[k].tag}</span></div>
@@ -375,12 +378,7 @@
      참고: 한전 EN:TER 전력거래계약 안내, 한국에너지공단 신재생 클라우드 사업 절차, 직접PPA 고시 해설(2022.9 시행) 등.
      세부 서류 · 기준은 관할 한전 · 지자체 · 전기안전공사에 확인한다. */
   const AG = { 사업자: "#0f1b33", 설계사: "#5a6b86", 지자체: "#12a36b", 한전: "#e8504f", 전기안전공사: "#f08400", 시공사: "#3266ff", 전력거래소: "#8a4fd6", 정부: "#0e9aa7" };
-  const GD = (k) => (window.ILL ? ({
-    survey: () => ILL.plant(), design: () => ILL.documentPaper("설계도 · 구조검토", "검토"), permit: () => ILL.documentPaper("개발행위허가 · 신고", "허가"),
-    biz: () => ILL.documentPaper("발전사업 허가증", "허가"), contract: () => ILL.documentPaper("전력 공급 계약서", "계약"), kepco: () => ILL.pole(), meter: () => ILL.board(),
-    rpr: () => ILL.relay(), build: () => ILL.factory({ step: 3, highlight: false }), inspect: () => ILL.factory({ step: 6, highlight: false, monitor: false }),
-    run: () => ILL.monitor(), money: () => ILL.coin(), market: () => ILL.office("#8a4fd6", "", true), wall: () => ILL.bapv(), module: () => ILL.module(),
-  }[k] || (() => ""))() : "");
+  const GD = (k) => ({ survey: "survey", design: "doc-design", permit: "doc-permit", biz: "doc-biz", contract: "doc-contract", kepco: "grid", meter: "board", rpr: "rpr", build: "step3", inspect: "step6", run: "monitor", money: "money", market: "tower", wall: "bapv", module: "module" }[k] ? R3({ survey: "survey", design: "doc-design", permit: "doc-permit", biz: "doc-biz", contract: "doc-contract", kepco: "grid", meter: "board", rpr: "rpr", build: "step3", inspect: "step6", run: "monitor", money: "money", market: "tower", wall: "bapv", module: "module" }[k]) : "");
   const TYPES = [
     { name: "자가소비", sub: "만든 전기를 건물에서 바로 쓴다", tag: "가장 일반적",
       own: "건물주(공장)", use: "생산한 전기를 공장이 먼저 사용, 모자라면 한전 전기", pay: "한전 전기요금이 줄어듦 (남는 전기는 보내지 않음)",
@@ -618,7 +616,7 @@
     const howTo = usage ? (usage.c.blocks.find((b) => b.t === "ul") || { items: [] }).items : [];
 
     root.innerHTML = `
-    <section class="hero" style="--hero-img:url('${((REP[1] || REP[0] || {}).location_img || {}).src || ""}')"><div class="wrap">
+    <section class="hero hero3d"><div class="wrap">
       <div class="reveal">
         <div class="eyebrow">${esc(m.project || "")} · ${esc(m.org || "")}</div>
         <h1>태양광 <em>사업관리</em><br>백서</h1>
@@ -632,12 +630,25 @@
         </div>
         <div class="meta"><span>버전 <b class="mono">${esc(m.version || "")}</b></span>${lastRev ? `<span>최근 개정 <b class="mono">${esc(lastRev[1])}</b></span>` : ""}<span>문서번호 <b class="mono">${esc(m.docno || "")}</b></span><span>${esc(m.org || "")}</span></div>
       </div>
-      <div class="reveal hero-panel">${heroPanel()}</div>
+      <div class="h3-col">
+        <div class="h3" id="h3" aria-label="공장 지붕 태양광 3D 모델">
+          <img class="h3-poster" src="3d/hero.webp" alt="공장 지붕 태양광 3D 모델" decoding="async">
+          <div class="h3-dots" id="h3-dots"></div>
+          <div class="h3-tip" id="h3-tip" hidden></div>
+          <span class="h3-hint" id="h3-hint">${icon("pointer", 14)} 끌어서 돌려 보기 · 점을 누르면 설명</span>
+        </div>
+        <div class="h3-sun glass" id="h3-sun">
+          <div class="h3-sun-h"><span class="k">해의 위치</span><b id="h3-time">오전 10:30</b><span class="h3-out" id="h3-out"></span></div>
+          <input type="range" id="h3-hr" min="6" max="19" step="0.05" value="10.5" aria-label="시각">
+          <div class="h3-sun-s"><span>06시</span><span>정오</span><span>19시</span></div>
+        </div>
+        <div class="reveal hero-panel">${heroPanel()}</div>
+      </div>
     </div><span class="scroll-hint" aria-hidden="true"></span><svg class="wave" viewBox="0 0 1440 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C 240 0 480 46 720 24 S 1200 8 1440 26 V46 H0z"/></svg></section>
 
     <div class="wrap"><section class="sec reveal" style="margin-top:36px">
       <div class="sec-head"><div><div class="eyebrow">백서 지도</div><h2>5개 파트, ${nCh}개 장</h2><p>처음이라면 PART 1부터, 현장 분석은 PART 2, 실무 체크리스트는 PART 3을 펼치세요.</p></div><a class="from" href="#wp">표지 · 개정 이력 →</a></div>
-      <div class="map">${WP.parts.map((p, pi) => pi === 0 ? "" : `<a class="map-card" href="#${p.chapters[0].id}" style="--pc:${pcolor(pi)}"><span class="pn">${pi}</span><span class="pl">${esc(p.label)}</span><h3>${esc(p.title)}</h3>
+      <div class="map">${WP.parts.map((p, pi) => pi === 0 ? "" : `<a class="map-card" href="#${p.chapters[0].id}" style="--pc:${pcolor(pi)}">${PART_ART[pi] ? `<span class="mc-art">${R3(PART_ART[pi])}</span>` : ""}<span class="pn">${pi}</span><span class="pl">${esc(p.label)}</span><h3>${esc(p.title)}</h3>
         <ul>${p.chapters.slice(0, 6).map((c) => `<li class="${c.locked ? "lk" : ""}"><b>${typeof c.num === "number" ? c.num : "A"}</b><span>${esc(c.title.replace(/ — .*/, ""))}${c.locked ? " 🔒" : ""}</span></li>`).join("")}${p.chapters.length > 6 ? `<li><b>+</b><span>외 ${p.chapters.length - 6}개 장</span></li>` : ""}</ul></a>`).join("")}</div>
     </section></div>
 
@@ -797,7 +808,7 @@
         return ph;
       });
       const strip = $("#b-strip", root);
-      const scene = (k, o = {}) => (window.ILL ? ILL.factory({ step: k, label: proc[k].title, ...o }) : "");
+      const scene = (k) => R3(`step${Math.min(k, 6)}`, proc[k].title);
       if (strip) strip.innerHTML = proc.map((p, k) => `<button type="button" data-k="${k}" aria-label="${esc(p.title)}"><span class="b-mini">${scene(k, { highlight: false })}</span><span><b>${k + 1}</b>${esc(p.title.replace(/^[①-⑨\s]+/, "").replace(/\s*\(.*\)/, "").replace(/ · ⑧.*/, ""))}</span></button>`).join("");
       if (strip) strip.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { stop(); show(+b.dataset.k); } });
       const show = (i) => {
@@ -809,7 +820,7 @@
         $("#b-prog", root).style.width = ((cur + 1) / proc.length * 100) + "%";
         // 공정에 맞는 실제 현장 사진 (시공완료보고서 사진대지)
         const box = $("#b-photo", root);
-        if (box && window.ILL) {
+        if (box) {
           const holder = document.createElement("div"); holder.className = "b-scene"; holder.innerHTML = scene(cur);
           box.insertBefore(holder, $("#b-no", root));
           requestAnimationFrame(() => holder.classList.add("in"));
@@ -829,6 +840,7 @@
       if (!reduceMotion) play(); else playBtn.textContent = "▶ 재생";
       cleanup.push(stop);
     }
+    hero3d(root);
     // 수익 시뮬레이터
     {
       const rowsN = numsT ? bodyRows(numsT) : [];
@@ -985,6 +997,65 @@
     box.addEventListener("click", (e) => { if (e.target.id === "ck-reset") { const all = store.get("ck", {}); delete all[site]; store.set("ck", all); paint(); toast(`${site} 체크리스트를 비웠습니다`); } });
     paint();
   }
+
+  /* ---------- 홈 실시간 3D (three.js, CDN) ---------- */
+  const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
+  let threeP = null;
+  async function hero3d(root) {
+    const st = $("#h3", root); if (!st || !window.SOLAR3D) return;
+    const hr = $("#h3-hr", root), tEl = $("#h3-time", root), outEl = $("#h3-out", root), dots = $("#h3-dots", root), tip = $("#h3-tip", root);
+    const hhmm = (h) => { const H = Math.floor(h), m = Math.round((h - H) * 60 / 5) * 5; const hh = m === 60 ? H + 1 : H, mm = m === 60 ? 0 : m; return `${hh < 12 ? "오전" : "오후"} ${((hh + 11) % 12) + 1}:${String(mm).padStart(2, "0")}`; };
+    let THREE;
+    try { threeP = threeP || import(THREE_URL); THREE = await threeP; } catch (e) { threeP = null; st.classList.add("still"); return; }
+    if (!st.isConnected) return;
+    let renderer;
+    const canvas = document.createElement("canvas"); canvas.className = "h3-cv";
+    try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" }); } catch (e) { st.classList.add("still"); return; }
+    const small = matchMedia("(max-width: 760px)").matches;
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, small ? 1.5 : 1.75));
+    renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.setClearColor(0x000000, 0);
+    const S3 = SOLAR3D.create(THREE, { shot: "hero", live: true, shadowMap: small ? 1024 : 2048, hour: +hr.value });
+    S3.setupEnv(renderer);
+    st.insertBefore(canvas, dots);
+    const base = { az: S3.view.az, el: S3.view.el };
+    let az = base.az, el = base.el, aspect = 1, dist = 1, dragging = false, lastX = 0, lastY = 0, idle = 0, visible = true, raf = 0, dirty = true;
+    const size = () => { const r = st.getBoundingClientRect(); aspect = r.width / Math.max(1, r.height); renderer.setSize(r.width, r.height, false); dist = S3.orbit(base.az, base.el, aspect) * 0.86; S3.orbit(az, el, aspect, dist); dirty = true; };
+    const kwp = (S3.modules || 0) * 0.645;
+    const sun = () => { const h = +hr.value, f = S3.setSun(h); tEl.textContent = hhmm(h); outEl.innerHTML = `발전 <b>${Math.round(f * 100)}%</b>${kwp ? ` · 약 ${fmt(kwp * f * 0.86, 0)}kW` : ""}`; dirty = true; };
+    // 핫스팟
+    const HS = S3.hotspots.filter((h) => EQ[h.key]);
+    dots.innerHTML = HS.map((h, i) => `<button type="button" class="h3-dot" data-i="${i}" aria-label="${esc(EQ[h.key].t)}"><i></i><span>${esc(EQ[h.key].t)}</span></button>`).join("");
+    const showTip = (i) => { const h = HS[i]; if (!h) { tip.hidden = true; return; } tip.hidden = false; tip.innerHTML = `<b>${esc(EQ[h.key].t)}</b><span>${esc(EQ[h.key].s)}</span>${EQ[h.key].tag ? `<em>${esc(EQ[h.key].tag)}</em>` : ""}`; $$(".h3-dot", dots).forEach((d) => d.classList.toggle("on", +d.dataset.i === i)); };
+    dots.addEventListener("click", (e) => { const b = e.target.closest(".h3-dot"); if (b) { e.stopPropagation(); showTip(+b.dataset.i); idle = -240; } });
+    const v = new THREE.Vector3();
+    const placeDots = () => {
+      const r = st.getBoundingClientRect();
+      $$(".h3-dot", dots).forEach((d, i) => { v.copy(HS[i].pos).project(S3.camera); const on = v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1; d.style.transform = `translate(${((v.x + 1) / 2 * r.width).toFixed(1)}px, ${((1 - v.y) / 2 * r.height).toFixed(1)}px)`; d.classList.toggle("off", !on); });
+    };
+    // 끌어서 돌리기
+    st.addEventListener("pointerdown", (e) => { if (e.target.closest(".h3-dot")) return; dragging = true; lastX = e.clientX; lastY = e.clientY; st.setPointerCapture(e.pointerId); st.classList.add("drag"); $("#h3-hint", root)?.classList.add("gone"); });
+    st.addEventListener("pointermove", (e) => { if (!dragging) return; az -= (e.clientX - lastX) * 0.35; el = Math.max(8, Math.min(62, el + (e.clientY - lastY) * 0.25)); lastX = e.clientX; lastY = e.clientY; idle = -300; dirty = true; });
+    const up = () => { dragging = false; st.classList.remove("drag"); };
+    st.addEventListener("pointerup", up); st.addEventListener("pointercancel", up);
+    hr.addEventListener("input", () => { sun(); idle = -300; });
+    const ro = new ResizeObserver(size); ro.observe(st);
+    const io = new IntersectionObserver((en) => { visible = en[0].isIntersecting; if (visible && !raf) loop(); }, { threshold: 0.02 }); io.observe(st);
+    let t = 0, first = true;
+    const loop = () => {
+      raf = 0; if (!visible || document.hidden || !st.isConnected) return;
+      t++; idle++;
+      if (!dragging && idle > 0 && !reduceMotion) { const target = base.az + Math.sin(t / 420) * 24; az += (target - az) * 0.02; el += (base.el - el) * 0.02; dirty = true; }
+      if (dirty) { S3.orbit(az, el, aspect, dist); renderer.render(S3.scene, S3.camera); placeDots(); dirty = false; if (first) { first = false; st.classList.add("on3d"); } }
+      raf = requestAnimationFrame(loop);
+    };
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && visible && !raf) loop(); });
+    size(); sun(); loop();
+    cleanup.push(() => { cancelAnimationFrame(raf); raf = 0; visible = false; ro.disconnect(); io.disconnect(); S3.dispose(); renderer.dispose(); renderer.forceContextLoss(); });
+  }
+  /* 장 · 파트 배너용 3D 그림 */
+  const CH_ART = { 1: "hero", 2: "office", 3: "doc", 4: "step3", 5: "safety", 6: "survey", 7: "hero", 8: "step2", 9: "step6", 10: "doc", 11: "doc-contract", 12: "survey", 13: "doc-design", 14: "doc-permit", 15: "module", 16: "step3", 17: "safety", 18: "step6", 19: "step5", 20: "monitor", 21: "money", 22: "doc-contract", 23: "office", 24: "rpr", 25: "board", 26: "monitor", 27: "money", 28: "doc", 29: "hero", 30: "structure", 31: "doc-design", 32: "module" };
+  const PART_ART = ["", "step3", "survey", "doc-permit", "money", "structure"];
   function linkify(h) {
     // "PART 1(1~5장)", "7장", "12장, 13장" → 링크
     return deco(h).replace(/(\d{1,2})장/g, (m, n) => chByNum(+n) ? `<a href="#ch${n}">${m}</a>` : m);
@@ -1171,7 +1242,7 @@
       const i = CH.indexOf(cur), prev = CH[i - 1], next = CH[i + 1];
       doc.style.setProperty("--pc", pcolor(cur.pi));
       const nTbl = c.blocks.filter((b) => b.t === "table").length, nImg = c.blocks.reduce((a, b) => a + (b.t === "fig" ? 1 : b.t === "gallery" ? b.items.length : 0), 0);
-      doc.innerHTML = `<header class="ch-banner" style="--pc:${pcolor(cur.pi)}"><div class="part">${esc(p.label || "문서")} · ${esc(p.title)}</div>${typeof c.num === "number" ? `<div class="bignum" aria-hidden="true">${String(c.num).padStart(2, "0")}</div><span class="ic">${icon(CH_IC[c.num], 24)}</span>` : ""}<h1>${esc(c.title)}</h1>
+      doc.innerHTML = `<header class="ch-banner ${CH_ART[c.num] ? "has-art" : ""}" style="--pc:${pcolor(cur.pi)}">${CH_ART[c.num] ? `<img class="cb-art" src="3d/${CH_ART[c.num]}.webp" alt="" aria-hidden="true" decoding="async">` : ""}<div class="part">${esc(p.label || "문서")} · ${esc(p.title)}</div>${typeof c.num === "number" ? `<div class="bignum" aria-hidden="true">${String(c.num).padStart(2, "0")}</div><span class="ic">${icon(CH_IC[c.num], 24)}</span>` : ""}<h1>${esc(c.title)}</h1>
         <div class="meta">${(c.sections || []).length ? `<span>절 ${c.sections.length}개</span>` : ""}${nTbl ? `<span>표 ${nTbl}개</span>` : ""}${nImg ? `<span>그림 · 사진 ${nImg}장</span>` : ""}${c.locked ? "<span>🔒 대외비</span>" : ""}</div></header>
         ${c.id === "appendix" && FORMS ? `<div class="form-cta"><div><b>이 양식들을 Word 파일로 받을 수 있습니다</b><span>현장에서 바로 쓰도록 디자인하고, 백서 · 보고서 내용으로 필요한 칸을 채웠습니다.</span></div><a class="btn primary" href="#forms">양식 내려받기 →</a></div>` : ""}
         ${c.id === "ch7" || c.num === 7 ? renderCh7(c.blocks) : renderBlocks(c.blocks)}
@@ -1494,14 +1565,14 @@
   let logOver = store.get("log", {});
   function renderCost(root) {
     if (!COST) {
-      root.innerHTML = `<div class="wrap view"><div class="page-banner"><div class="eyebrow">21장 원가 관리 · 원가관리 툴 연동</div><h1>원가 분석</h1><p>시공 견적의 항목별 시장 기준 대비 판정, 노무비 실투입 분석, 기준단가 편집과 새 견적 빠른 검토를 제공합니다.</p></div>${VAULT ? lockedBox("cost") : "<p>원가 데이터가 없습니다.</p>"}</div>`;
+      root.innerHTML = `<div class="wrap view"><div class="page-banner has-art"><img class="pb-art" src="3d/money.webp" alt="" aria-hidden="true"><div class="eyebrow">21장 원가 관리 · 원가관리 툴 연동</div><h1>원가 분석</h1><p>시공 견적의 항목별 시장 기준 대비 판정, 노무비 실투입 분석, 기준단가 편집과 새 견적 빠른 검토를 제공합니다.</p></div>${VAULT ? lockedBox("cost") : "<p>원가 데이터가 없습니다.</p>"}</div>`;
       return;
     }
     let scope = "all";
     const ch21 = chByNum(21);
     const structT = findTable(ch21, "구분", "항목");
     root.innerHTML = `<div class="wrap view">
-      <div class="page-banner"><div class="eyebrow">21장 원가 관리 · 원가관리 툴 연동 · 대외비</div><h1>원가 분석</h1><p>${esc(COST.title)}</p></div>
+      <div class="page-banner has-art"><img class="pb-art" src="3d/money.webp" alt="" aria-hidden="true"><div class="eyebrow">21장 원가 관리 · 원가관리 툴 연동 · 대외비</div><h1>원가 분석</h1><p>${esc(COST.title)}</p></div>
       <div class="sec-head"><div>
       <p class="lead"> 원가관리 툴의 견적원본 · 기준단가 · 투입 인원 일지로 엑셀과 같은 계산을 이 화면에서 다시 합니다. 노란 칸(기준단가 · 인원 일지)을 바꾸면 모든 표가 바로 다시 계산됩니다.</p></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="#s21-5">기준단가 근거 (21.5)</a><a class="btn" href="#s21-7">견적 검토 절차 (21.7)</a></div></div>
@@ -1659,7 +1730,7 @@
     if (!FORMS) { root.innerHTML = '<div class="wrap view"><p>양식 데이터가 없습니다.</p></div>'; return; }
     const F = FORMS.forms;
     root.innerHTML = `<div class="wrap view">
-      <div class="page-banner forms-banner reveal"><div class="eyebrow">백서 부록 · 양식 모음</div><h1>현장 양식</h1>
+      <div class="page-banner forms-banner has-art reveal"><img class="pb-art" src="3d/doc-contract.webp" alt="" aria-hidden="true"><div class="eyebrow">백서 부록 · 양식 모음</div><h1>현장 양식</h1>
         <p>실사부터 O&amp;M까지 현장에서 쓰는 양식 ${F.length}종입니다. A4 한 장에 맞춘 Word 파일로, Pretendard 글꼴이 파일 안에 들어 있어 어느 PC에서 열어도 같은 디자인으로 보입니다.</p>
         <div class="chips"><span>Word (.docx)</span><span>Pretendard 내장</span><span>A4 인쇄용</span><span>결재란 포함</span></div>
         <div style="margin-top:18px">${formBtn(FORMS.all, `⬇ 전체 모음 받기 (A~${F[F.length - 1].code})`, "btn primary big")}</div></div>

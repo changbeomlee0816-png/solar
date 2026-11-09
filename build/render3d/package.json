@@ -1,0 +1,6 @@
+{
+  "name": "render3d",
+  "private": true,
+  "description": "3D 장면 렌더 (빌드 도구). 결과 이미지는 site/3d/ 에 저장",
+  "dependencies": { "three": "0.160.0" }
+}

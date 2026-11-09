@@ -7,3 +7,5 @@ dist/
 *.pdf
 __pycache__/
 build/.cache/
+build/render3d/node_modules/
+build/render3d/package-lock.json

@@ -1393,3 +1393,120 @@ figure.fig img { border-radius: 16px; box-shadow: var(--shadow); }
 .ck-items label.gate { padding: 8px; border-radius: 10px; background: var(--sun-soft); }
 .ck-items input:checked + span { color: var(--ink-3); text-decoration: line-through; }
 .ck-items small { font-size: 12px; color: var(--ink-3); }
+
+/* ===================== v4 · 3D 디자인 ===================== */
+:root {
+  --studio: radial-gradient(120% 95% at 28% 12%, #ffffff 0%, #f1f5fb 42%, #dfe7f2 100%);
+  --studio-edge: rgba(15, 27, 51, .07);
+  --depth: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 1px 2px rgba(15, 27, 51, .05), 0 18px 40px -18px rgba(15, 27, 51, .22);
+  --depth-hover: 0 1px 0 rgba(255, 255, 255, .7) inset, 0 2px 4px rgba(15, 27, 51, .06), 0 30px 60px -22px rgba(15, 27, 51, .32);
+  --r: 18px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --studio: radial-gradient(120% 95% at 28% 12%, #2a3756 0%, #1a2540 48%, #101829 100%);
+    --studio-edge: rgba(255, 255, 255, .06);
+    --depth: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 1px 2px rgba(0, 0, 0, .35), 0 18px 40px -18px rgba(0, 0, 0, .6);
+    --depth-hover: 0 1px 0 rgba(255, 255, 255, .07) inset, 0 2px 4px rgba(0, 0, 0, .4), 0 30px 60px -22px rgba(0, 0, 0, .75);
+  }
+}
+:root[data-theme="dark"] {
+  --studio: radial-gradient(120% 95% at 28% 12%, #2a3756 0%, #1a2540 48%, #101829 100%);
+  --studio-edge: rgba(255, 255, 255, .06);
+  --depth: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 1px 2px rgba(0, 0, 0, .35), 0 18px 40px -18px rgba(0, 0, 0, .6);
+  --depth-hover: 0 1px 0 rgba(255, 255, 255, .07) inset, 0 2px 4px rgba(0, 0, 0, .4), 0 30px 60px -22px rgba(0, 0, 0, .75);
+}
+
+/* 공통 표면: 입체감 있는 카드 */
+.card, .map-card, .faq-i, .pf-card, .ck-stages li { box-shadow: var(--depth); }
+.card { border-radius: 22px; }
+.map-card:hover, .pf-card:hover { box-shadow: var(--depth-hover); }
+.sec-head h2 { letter-spacing: -0.045em; }
+.eyebrow { display: inline-flex; align-items: center; gap: 7px; }
+
+/* 3D 렌더 이미지 */
+.r3d { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; padding: 7%; box-sizing: border-box; transition: transform .7s cubic-bezier(.2, .7, .2, 1); filter: drop-shadow(0 10px 14px rgba(15, 27, 51, .12)); }
+.pf-img, .pf-thumb, .st-pic, .b-mini, .tg-pic, .mc-art, .build-photo { background: var(--studio) !important; box-shadow: inset 0 0 0 1px var(--studio-edge); }
+.pf-thumb, .st-pic, .tg-pic, .b-mini, .mc-art { position: relative; }
+.pf-card:hover .r3d, .pf-mini:hover .r3d, .pf-side:hover .r3d, .map-card:hover .r3d { transform: translateY(-4px) scale(1.04); }
+.st-pic .r3d, .tg-pic .r3d { padding: 6%; filter: drop-shadow(0 4px 6px rgba(15, 27, 51, .14)); }
+.b-mini .r3d { padding: 4%; }
+.build-photo { aspect-ratio: 3 / 2; }
+.build-photo img.r3d { object-fit: contain; padding: 2% 3%; }
+.build-photo .b-scene.in img.r3d { transform: scale(1.03); transition: transform 3.4s ease-out; }
+.build-photo .cap { background: rgba(8, 12, 22, .62); }
+
+/* 홈 히어로 · 실시간 3D */
+.hero.hero3d { min-height: 0; display: block; align-items: initial;
+  background:
+    radial-gradient(50% 55% at 74% 42%, rgba(255, 184, 60, .20), transparent 65%),
+    radial-gradient(55% 70% at 8% 100%, rgba(50, 102, 255, .26), transparent 62%),
+    linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(180deg, #060b19 0%, #0a1430 55%, #0f1d3f 100%); }
+.hero.hero3d::after { background: radial-gradient(40% 40% at 78% 8%, rgba(255, 170, 40, .22), transparent 70%); }
+.hero3d .wrap { grid-template-columns: minmax(0, .92fr) minmax(0, 1.18fr); gap: 28px; padding-block: 118px 58px; align-items: center; }
+.hero3d h1 { font-size: clamp(38px, 5.4vw, 80px); }
+.h3-col { display: grid; gap: 12px; min-width: 0; }
+.h3 { position: relative; aspect-ratio: 16 / 10.5; border-radius: 30px; overflow: hidden; cursor: grab; touch-action: pan-y; user-select: none;
+  background: radial-gradient(62% 55% at 50% 58%, rgba(140, 175, 255, .22), transparent 72%), radial-gradient(40% 24% at 50% 82%, rgba(0, 0, 0, .35), transparent 70%);
+  border: 1px solid rgba(255, 255, 255, .08); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06), 0 40px 80px -40px rgba(0, 0, 0, .8); }
+.h3.drag { cursor: grabbing; }
+.h3-poster, .h3-cv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.h3-poster { object-fit: contain; padding: 4%; box-sizing: border-box; transition: opacity .9s; animation: h3float 7s ease-in-out infinite; }
+@keyframes h3float { 50% { transform: translateY(-6px); } }
+.h3-cv { opacity: 0; transition: opacity .9s; }
+.h3.on3d .h3-cv { opacity: 1; } .h3.on3d .h3-poster { opacity: 0; animation: none; }
+.h3-dots { position: absolute; inset: 0; pointer-events: none; }
+.h3:not(.on3d) .h3-dots, .h3:not(.on3d) .h3-hint { display: none; }
+.h3-dot { position: absolute; left: 0; top: 0; pointer-events: auto; border: 0; background: none; padding: 0; cursor: pointer; display: flex; align-items: center; gap: 6px; margin: -11px 0 0 -11px; transition: opacity .3s; }
+.h3-dot.off { opacity: 0; pointer-events: none; }
+.h3-dot i { width: 22px; height: 22px; border-radius: 50%; background: rgba(255, 190, 61, .25); display: grid; place-items: center; position: relative; flex: none; }
+.h3-dot i::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: #ffbe3d; box-shadow: 0 0 0 2px #fff, 0 0 14px rgba(255, 190, 61, .9); }
+.h3-dot i::after { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid rgba(255, 190, 61, .7); animation: h3ping 2.2s ease-out infinite; }
+@keyframes h3ping { from { transform: scale(.6); opacity: 1; } to { transform: scale(2); opacity: 0; } }
+.h3-dot span { font-size: 12px; font-weight: 800; color: #fff; background: rgba(8, 14, 30, .72); border: 1px solid rgba(255, 255, 255, .16); backdrop-filter: blur(8px); border-radius: 8px; padding: 3px 8px; white-space: nowrap; opacity: .0; transform: translateX(-4px); transition: all .25s; }
+.h3-dot:hover span, .h3-dot.on span, .h3-dot:focus-visible span { opacity: 1; transform: none; }
+.h3-dot.on i::before { background: #fff; }
+.h3-tip { position: absolute; left: 14px; bottom: 14px; max-width: min(320px, 80%); display: grid; gap: 3px; padding: 12px 14px; border-radius: 14px; background: rgba(8, 14, 30, .78); border: 1px solid rgba(255, 255, 255, .14); backdrop-filter: blur(12px); color: #fff; animation: palin .2s ease-out; }
+.h3-tip b { font-size: 15px; } .h3-tip span { font-size: 13px; color: rgba(255, 255, 255, .78); line-height: 1.5; }
+.h3-tip em { font-style: normal; justify-self: start; font-size: 11.5px; font-weight: 800; color: #10203f; background: #ffbe3d; border-radius: 6px; padding: 1px 7px; margin-top: 3px; }
+.h3-hint { position: absolute; right: 14px; top: 14px; display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, .8); background: rgba(8, 14, 30, .55); border: 1px solid rgba(255, 255, 255, .12); border-radius: 99px; padding: 5px 11px; backdrop-filter: blur(8px); transition: opacity .4s; pointer-events: none; }
+.h3-hint.gone { opacity: 0; }
+.h3-sun { padding: 12px 16px 10px; color: #fff; transition: opacity .4s; }
+.h3-col:not(:has(.h3.on3d)) .h3-sun { opacity: .45; pointer-events: none; }
+.h3-col:has(.h3.still) .h3-sun { display: none; }
+.h3-sun-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.h3-sun-h b { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+.h3-out { margin-left: auto; font-size: 13px; color: rgba(255, 255, 255, .75); } .h3-out b { color: #ffbe3d; font-size: 15px; }
+.h3-sun input[type="range"] { width: 100%; margin: 8px 0 2px; -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: linear-gradient(90deg, #3b5aa8, #ffbe3d 50%, #e0663a); outline: 0; }
+.h3-sun input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #fff; border: 4px solid #ffbe3d; box-shadow: 0 0 16px rgba(255, 190, 61, .8); cursor: pointer; }
+.h3-sun input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 4px solid #ffbe3d; cursor: pointer; }
+.h3-sun-s { display: flex; justify-content: space-between; font-size: 11px; color: rgba(255, 255, 255, .5); }
+.hero3d .hero-panel .glass { padding: 14px 16px; }
+.hero3d .hero-panel .glass .v { font-size: 30px !important; }
+@media (max-width: 900px) {
+  .hero3d .wrap { grid-template-columns: minmax(0, 1fr); padding-block: 96px 40px; }
+  .h3 { aspect-ratio: 4 / 3.2; border-radius: 22px; }
+  .h3-dot span { display: none; }
+  .h3-dot.on span { display: block; }
+}
+
+/* 장 배너 · 파트 카드 · 페이지 배너 그림 */
+.ch-banner.has-art { min-height: 190px; }
+.ch-banner.has-art h1 { padding-right: min(40%, 300px); }
+.cb-art { position: absolute; right: 10px; top: 5%; height: 92%; max-width: 44%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 18px 24px rgba(0, 0, 0, .3)); animation: h3float 8s ease-in-out infinite; }
+.ch-banner.has-art .bignum { right: auto; left: auto; right: 44%; opacity: .5; }
+.ch-banner.has-art .ic { display: none; }
+@media (max-width: 620px) { .ch-banner.has-art h1 { padding-right: 34%; } .cb-art { max-width: 40%; height: 80%; top: 10%; opacity: .9; } .ch-banner.has-art .bignum { display: none; } }
+.mc-art { display: block; aspect-ratio: 16 / 9.5; margin: -22px -20px 14px; overflow: hidden; border-radius: 22px 22px 0 0; }
+.mc-art .r3d { padding: 6% 8%; }
+.map-card::before { z-index: 1; }
+.page-banner.has-art > :not(.pb-art) { position: relative; z-index: 1; max-width: min(60%, 640px); }
+.pb-art { position: absolute; right: 2%; top: 50%; transform: translateY(-50%); height: 115%; max-width: 44%; object-fit: contain; pointer-events: none; filter: drop-shadow(0 30px 40px rgba(0, 0, 0, .35)); }
+@media (max-width: 760px) {
+  .page-banner.has-art > :not(.pb-art) { max-width: none; }
+  .pb-art { top: 10px; right: 10px; transform: none; height: 96px; max-width: 46%; }
+}
+@media (prefers-reduced-motion: reduce) { .h3-poster, .cb-art { animation: none; } .h3-dot i::after { animation: none; } }
+.h3-tip[hidden] { display: none; }

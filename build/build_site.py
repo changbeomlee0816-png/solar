@@ -136,7 +136,10 @@ def main():
     html = (SITE / "index.template.html").read_text(encoding="utf-8")
     html = html.replace("/*__STYLE__*/", (SITE / "style.css").read_text(encoding="utf-8"))
     html = html.replace("/*__DATA__*/", blob)
-    html = html.replace("/*__APP__*/", (SITE / "illust.js").read_text(encoding="utf-8") + "\n" + (SITE / "app.js").read_text(encoding="utf-8"))
+    html = html.replace("/*__APP__*/", "\n".join((SITE / f).read_text(encoding="utf-8") for f in ("scene3d.js", "app.js")))
+    # 3D 렌더 이미지 (일반 장면, 저장소에 포함)
+    if (SITE / "3d").is_dir():
+        shutil.copytree(SITE / "3d", out / "3d")
     if a.password:
         # 일반 웹 호스팅용: 완전한 HTML 문서로 감싼다 (Artifact는 자체 골격을 붙이므로 감싸지 않음)
         head, body = html.split("</style>", 1)
