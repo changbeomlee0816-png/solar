@@ -677,15 +677,31 @@
         <div class="card build-info" id="build-info"></div>
       </div></section>` : ""}
 
-    ${numsT ? `<section class="sec reveal" id="calc">
-      <div class="sec-head"><div><div class="eyebrow">1.4 숫자로 감 잡기</div><h2>용량을 넣으면 규모가 보입니다</h2>
-      <p>645W 모듈, 일평균 발전 3.5시간(예시 가정), 1kW당 약 4.7m² 기준입니다. 실제 현장 값은 26장(발전량 예측)에서 관리합니다.</p></div><a class="from" href="#s1-4">백서 1.4 →</a></div>
-      <div class="card calc">
-        <div><label for="kw">설비 용량 (kWp)</label><div class="big"><span id="kw-v">100</span><small> kWp</small></div>
-          <input type="range" id="kw" min="10" max="1000" step="0.01" value="100" aria-label="설비 용량">
-          <div class="seg" style="margin-top:10px" id="kw-presets"><button type="button" data-v="100">100kW</button>${REP.map((r) => `<button type="button" data-v="${r.kwp}">${esc(norm(r.site).replace(/공장$/, ""))}</button>`).join("")}</div></div>
-        <div><div class="calc-out" id="calc-out"></div><div class="mini-array" id="mini-array" aria-hidden="true"></div><div class="from" id="calc-note" style="margin-top:6px"></div></div>
-      </div></section>` : ""}
+    <section class="sec reveal" id="calc">
+      <div class="sec-head"><div><div class="eyebrow">수익 시뮬레이터</div><h2>우리 공장에 달면 얼마나 아낄까</h2>
+      <p>용량 · 발전시간 · 자가소비율 · 전기요금을 넣으면 연간 절감액, 회수기간, 20년 누적 현금흐름을 계산합니다. 자부담 100%와 정부지원(자부담 30%)을 나란히 비교합니다.</p></div><a class="from" href="#s1-4">백서 1.4 · 26 · 27장 →</a></div>
+      <div class="sim card">
+        <div class="sim-in">
+          <label class="sim-f"><span>설비 용량 <b class="sim-v" id="sv-kw">143</b> kWp</span><input type="range" id="s-kw" min="10" max="1000" step="1" value="143" aria-label="설비 용량"></label>
+          <div class="seg" id="s-pre"><button type="button" data-v="100">100kW</button>${REP.map((r) => `<button type="button" data-v="${r.kwp}">${esc(norm(r.site).replace(/공장$/, ""))}</button>`).join("")}<button type="button" data-v="500">500kW</button></div>
+          <label class="sim-f"><span>하루 평균 발전시간 <b class="sim-v" id="sv-h">3.5</b> 시간</span><input type="range" id="s-h" min="2.8" max="4.2" step="0.1" value="3.5" aria-label="발전시간"></label>
+          <label class="sim-f"><span>자가소비율 <b class="sim-v" id="sv-sc">85</b> %</span><input type="range" id="s-sc" min="50" max="100" step="1" value="85" aria-label="자가소비율"></label>
+          <label class="sim-f"><span>전기요금 단가 <b class="sim-v" id="sv-p">135</b> 원/kWh</span><input type="range" id="s-p" min="100" max="200" step="1" value="135" aria-label="전기요금 단가"></label>
+          <details class="sim-more"><summary>가정 바꾸기</summary>
+            <label class="sim-n">kW당 공사비 (원)<input type="number" id="s-c" step="10000"></label>
+            <label class="sim-n">전기요금 상승률 (%/년)<input type="number" id="s-esc" value="2" step="0.5"></label>
+            <label class="sim-n">모듈 출력 저하 (%/년)<input type="number" id="s-deg" value="0.4" step="0.1"></label>
+            <label class="sim-n">유지관리비 (공사비 대비 %/년)<input type="number" id="s-om" value="1" step="0.1"></label>
+          </details>
+        </div>
+        <div class="sim-out">
+          <div class="sim-kpi" id="s-kpi"></div>
+          <div class="sim-chart" id="s-chart"></div>
+          <div class="sim-bench" id="s-bench"></div>
+          <p class="from sim-note" id="s-note"></p>
+        </div>
+      </div></section>
+
 
     <section class="sec reveal">
       ${FORMS ? `<div class="sec-head"><div><div class="eyebrow">현장 양식 · Word</div><h2>현장에서 바로 쓰는 양식 ${FORMS.forms.length}종</h2><p>백서 부록 양식을 Pretendard로 디자인한 Word 파일로 만들었습니다. 체크 항목 · 기준 · 준공 현장 정보까지 채워 두었습니다.</p></div><a class="from" href="#forms">양식 전체 →</a></div>
@@ -701,6 +717,11 @@
       <div class="card panel"><h3>처음 투입되는 분께</h3>
         <ol class="path-list">${howTo.slice(0, 6).map((x) => `<li><span>${linkify(x)}</span></li>`).join("")}</ol></div>
     </section>
+    <section class="sec reveal" id="faq">
+      <div class="sec-head"><div><div class="eyebrow">자주 묻는 질문</div><h2>현장과 고객이 가장 많이 묻는 것</h2><p>수용가 설명 · 신규 투입자 교육 때 바로 쓰는 답변입니다. 근거가 되는 백서 장을 함께 달았습니다.</p></div></div>
+      <div class="faq">${FAQ.map(([q, a, link], i) => `<details class="faq-i" ${i === 0 ? "open" : ""}><summary><span class="faq-q">Q</span><b>${esc(q)}</b><span class="faq-x" aria-hidden="true"></span></summary><div class="faq-a"><p>${esc(a)}</p>${link ? `<a class="from" href="#${link[0]}">${esc(link[1])} →</a>` : ""}</div></details>`).join("")}</div>
+    </section>
+
     </div>`;
 
     // 장비 선택
@@ -808,36 +829,161 @@
       if (!reduceMotion) play(); else playBtn.textContent = "▶ 재생";
       cleanup.push(stop);
     }
-    // 계산기
-    if (numsT) {
-      const rows = bodyRows(numsT);
-      const val = (key, re, d) => { const r = rows.find((x) => x[0].includes(key)); const m = r && r[1].match(re); return m ? parseFloat(m[1].replace(/,/g, "")) : d; };
+    // 수익 시뮬레이터
+    {
+      const rowsN = numsT ? bodyRows(numsT) : [];
+      const val = (key, re, d) => { const r = rowsN.find((x) => x[0].includes(key)); const m = r && r[1].match(re); return m ? parseFloat(m[1].replace(/,/g, "")) : d; };
       const W = val("출력", /([\d.]+)\s*W/, 645), AREA = val("면적", /([\d.]+)\s*m/, 4.7);
-      const HRS = 3.5;
-      const kwRows = bodyRows(kwT).map((r) => [parseFloat(r[0]), parseFloat(r[1].replace(/,/g, ""))]).filter((x) => isFinite(x[0]) && isFinite(x[1])).sort((a, b) => a[0] - b[0]);
-      const unitCost = (kw) => {
-        if (!kwRows.length) return null;
-        if (kw <= kwRows[0][0]) return kwRows[0][1];
-        for (let i = 1; i < kwRows.length; i++) if (kw <= kwRows[i][0]) { const [a, ca] = kwRows[i - 1], [b, cb] = kwRows[i]; return ca + (cb - ca) * (kw - a) / (b - a); }
-        return kwRows[kwRows.length - 1][1];
+      // kW당 시장 총공사비: 백서 21.5 표(대외비 해제 시) 또는 업체 공개가(30kW 164만 · 100kW 142만 · 210kW 130만원)
+      let kwRows = kwT ? bodyRows(kwT).map((r) => [parseFloat(r[0]), parseFloat(r[1].replace(/,/g, ""))]).filter((x) => isFinite(x[0]) && isFinite(x[1])) : [];
+      if (!kwRows.length) kwRows = [[30, 1640000], [100, 1420000], [200, 1300000]];
+      kwRows.sort((a, b) => a[0] - b[0]);
+      const unitCost = (kw) => { if (kw <= kwRows[0][0]) return kwRows[0][1]; for (let i = 1; i < kwRows.length; i++) if (kw <= kwRows[i][0]) { const [a, ca] = kwRows[i - 1], [b, cb] = kwRows[i]; return ca + (cb - ca) * (kw - a) / (b - a); } return kwRows[kwRows.length - 1][1]; };
+      const $i = (id) => $("#" + id, root);
+      let costTouched = false;
+      $i("s-c").addEventListener("input", () => { costTouched = true; });
+      const num = (v) => parseFloat(String(v || "").replace(/[^\d.]/g, "")) || 0;
+      const run = () => {
+        const kw = +$i("s-kw").value, H = +$i("s-h").value, sc = +$i("s-sc").value / 100, price = +$i("s-p").value;
+        $i("sv-kw").textContent = fmt(kw); $i("sv-h").textContent = H.toFixed(1); $i("sv-sc").textContent = Math.round(sc * 100); $i("sv-p").textContent = price;
+        if (!costTouched) $i("s-c").value = Math.round(unitCost(kw) / 10000) * 10000;
+        const uc = +$i("s-c").value || unitCost(kw), esc2 = (+$i("s-esc").value || 0) / 100, deg = (+$i("s-deg").value || 0) / 100, om = (+$i("s-om").value || 0) / 100;
+        const cost = kw * uc, gen1 = kw * H * 365, save1 = gen1 * sc * price;
+        const plans = [{ k: "자부담 100%", inv: cost, c: "var(--navy)" }, { k: "정부지원 70%", inv: cost * 0.3, c: "#12a36b" }];
+        const Y = 20;
+        for (const p of plans) {
+          let cum = -p.inv; p.series = [cum]; p.payback = null;
+          for (let y = 1; y <= Y; y++) {
+            const s = gen1 * Math.pow(1 - deg, y - 1) * sc * price * Math.pow(1 + esc2, y - 1) - cost * om;
+            const prev = cum; cum += s; p.series.push(cum);
+            if (p.payback == null && cum >= 0) p.payback = y - 1 + (-prev) / (cum - prev);
+          }
+          p.total = cum;
+        }
+        const co2 = gen1 * 0.4173 / 1000, trees = co2 * 1000 / 6.6;
+        $i("s-kpi").innerHTML = [
+          ["연간 발전량", fmt(gen1 / 1000, 1), "MWh", `모듈 ${fmt(Math.ceil(kw * 1000 / W))}장 · 지붕 약 ${fmt(kw * AREA)}m²`],
+          ["1년차 전기요금 절감", man(save1), "원", `자가소비 ${fmt(gen1 * sc / 1000, 1)}MWh × ${price}원`],
+          ["회수기간", plans[1].payback != null ? plans[1].payback.toFixed(1) : "20+", "년", `정부지원 70% 기준 · 자부담 100%면 ${plans[0].payback != null ? plans[0].payback.toFixed(1) + "년" : "20년 이상"}`],
+          ["20년 누적 순이익", eok(plans[1].total), "", `자부담 100%면 ${eok(plans[0].total)}`],
+          ["온실가스 감축", fmt(co2, 1), "tCO₂/년", `소나무 약 ${fmt(Math.round(trees / 10) * 10)}그루가 1년간 흡수하는 양`],
+        ].map(([k, v, u, s], i) => `<div class="sk ${i === 2 ? "hl" : ""}"><span>${k}</span><b>${v}<small>${u}</small></b><em>${s}</em></div>`).join("");
+        // 20년 누적 현금흐름 차트
+        const Wc = Math.max(320, Math.min(640, ($i("s-chart").clientWidth || 640) - 26)), Hc = Wc < 480 ? 220 : 230, L = 54, R = 14, T = 16, B = 28;
+        const all = plans.flatMap((p) => p.series), mn = Math.min(0, ...all), mx = Math.max(0, ...all);
+        const step = niceStep((mx - mn) / 4); const lo = Math.floor(mn / step) * step, hi = Math.ceil(mx / step) * step;
+        const x = (y) => L + (Wc - L - R) * y / Y, yv = (v) => T + (Hc - T - B) * (1 - (v - lo) / (hi - lo || 1));
+        let g = "";
+        for (let v = lo; v <= hi + 1; v += step) g += `<line class="gl" x1="${L}" x2="${Wc - R}" y1="${yv(v)}" y2="${yv(v)}"/><text x="${L - 6}" y="${yv(v) + 4}" text-anchor="end">${(v / 1e8).toFixed(1)}억</text>`;
+        for (let y = 0; y <= Y; y += 5) g += `<text x="${x(y)}" y="${Hc - 8}" text-anchor="middle">${y}년</text>`;
+        g += `<line x1="${L}" x2="${Wc - R}" y1="${yv(0)}" y2="${yv(0)}" stroke="var(--ink-3)" stroke-width="1.2"/>`;
+        plans.forEach((p, k) => {
+          const pts = p.series.map((v, y) => `${x(y).toFixed(1)},${yv(v).toFixed(1)}`).join(" ");
+          if (k === 1) g += `<polygon points="${x(0)},${yv(0)} ${pts} ${x(Y)},${yv(0)}" fill="#12a36b" opacity=".10"/>`;
+          g += `<polyline class="sim-line" points="${pts}" fill="none" stroke="${p.c}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>`;
+          if (p.payback != null) g += `<circle cx="${x(p.payback)}" cy="${yv(0)}" r="5.5" fill="var(--paper)" stroke="${p.c}" stroke-width="3"/><text x="${x(p.payback)}" y="${yv(0) - 12 - k * 14}" text-anchor="middle" class="val" style="fill:${p.c};font-weight:800">${p.payback.toFixed(1)}년 회수</text>`;
+        });
+        $i("s-chart").innerHTML = `<div class="sim-legend">${plans.map((p) => `<span><i style="background:${p.c}"></i>${p.k} · 투자 ${eok(p.inv)}</span>`).join("")}</div>
+          <svg class="chart" viewBox="0 0 ${Wc} ${Hc}" role="img" aria-label="20년 누적 현금흐름">${g}</svg>`;
+        const bench = REP.filter((r) => r.effect && r.effect.payback).map((r) => `<span><b>${esc(norm(r.site))}</b> ${esc(r.effect.payback.value.replace("약 ", ""))} · 절감 ${esc((r.effect.saving || {}).value ? man(num(r.effect.saving.value)) + "원/년" : "–")}</span>`).join("");
+        $i("s-bench").innerHTML = bench ? `<div class="sim-bench-h">실제 준공 현장 (시공완료보고서, 정부지원 70% 기준)</div><div class="sim-bench-l">${bench}</div>` : "";
+        $i("s-note").textContent = `가정: kW당 공사비 ${fmt(uc)}원(업체 공개가 기준, 지붕 보강 포함 여부에 따라 달라짐) · 요금 상승 ${(esc2 * 100).toFixed(1)}%/년 · 출력 저하 ${(deg * 100).toFixed(1)}%/년(모듈 출력보증 30년 87.4% 수준) · 유지관리비 ${(om * 100).toFixed(1)}%/년 · 배출계수 0.4173tCO₂/MWh · 소나무 1그루 연 6.6kg 흡수(국립산림과학원). 세금 · 금융비용 · 요금제 변경 효과는 넣지 않았습니다.`;
       };
-      const input = $("#kw", root), out = $("#calc-out", root), arr = $("#mini-array", root);
-      const upd = () => {
-        const kw = +input.value; $("#kw-v", root).textContent = fmt(kw, 2);
-        const mods = Math.ceil(kw * 1000 / W), day = kw * HRS, yr = day * 365, uc = unitCost(kw);
-        out.innerHTML = [
-          [fmt(mods), "모듈 (장, " + W + "W)"], [fmt(kw * AREA), "모듈 면적 (m², 통로 별도)"], [fmt(day), "하루 발전량 (kWh)"],
-          [fmt(yr / 1000, 1), "연간 발전량 (MWh)"], [fmt(yr * 0.4173 / 1000, 1), "온실가스 감축 (tCO₂eq/년)"],
-          [uc ? (kw * uc / 1e8).toFixed(2) + "억" : "–", "시장 총공사비 (21.5 기준)"],
-        ].map(([v, k]) => `<div><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
-        const per = mods > 400 ? Math.ceil(mods / 400) : 1;
-        arr.innerHTML = Array.from({ length: Math.ceil(mods / per) }, (_, i) => `<i style="animation-delay:${Math.min(i * 3, 600)}ms"></i>`).join("");
-        $("#calc-note", root).textContent = per > 1 ? `■ 1칸 = 모듈 ${per}장` : "■ 1칸 = 모듈 1장";
-      };
-      input.addEventListener("input", upd);
-      $("#kw-presets", root).addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { input.value = b.dataset.v; upd(); } });
-      upd();
+      ["s-kw", "s-h", "s-sc", "s-p", "s-c", "s-esc", "s-deg", "s-om"].forEach((id) => $i(id).addEventListener("input", run));
+      $i("s-pre").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { $i("s-kw").value = Math.round(+b.dataset.v); costTouched = false; run(); } });
+      run();
+      let rz; const onR = () => { clearTimeout(rz); rz = setTimeout(() => { if ($i("s-chart")) run(); }, 200); };
+      window.addEventListener("resize", onR); cleanup.push(() => window.removeEventListener("resize", onR));
     }
+  }
+
+  const FAQ = [
+    ["흐린 날이나 겨울에도 전기가 만들어지나요?", "만들어지지만 양이 줄어듭니다. 흐린 날은 맑은 날보다 크게 줄고, 겨울은 해가 짧아 발전량이 적습니다. 대신 기온이 낮으면 모듈 효율은 좋아집니다. 1년 평균으로 하루 약 3.5시간 발전을 가정해 계산합니다.", ["s1-4", "백서 1.4 숫자로 감 잡기"]],
+    ["한전이 정전되면 태양광 전기로 공장을 돌릴 수 있나요?", "아니요. 한전 선로와 연결된 인버터는 정전이 되면 안전을 위해 스스로 멈춥니다(단독운전 방지). 복전 후 재기동 지연(현장 설정 300초)이 지나면 자동으로 다시 발전합니다.", ["ch18", "백서 18장 품질 · 검사"]],
+    ["지붕에서 물이 새지 않나요?", "구조물이 지붕을 뚫는 부분이 가장 큰 누수 위험입니다. 관통부 방수 · 실리콘 · 볼트캡 처리를 하고, 덮이기 전에 사진으로 남깁니다. 노후 지붕은 설치 전에 칼라강판으로 보강합니다.", ["ch4", "백서 4장 시공 공정"]],
+    ["설비는 몇 년 쓰고, 보증은 어떻게 되나요?", "2026 현장 기준 모듈 출력보증 30년(87.4%), 모듈 제품보증 12년, 인버터 5년, 시공 하자보증 3년입니다. 출력보증은 연 약 0.4%씩 줄어드는 것까지 보장한다는 뜻입니다.", ["ch19", "백서 19장 준공 · 보증"]],
+    ["공사하는 동안 공장은 멈춰야 하나요?", "대부분 지붕 위 작업이라 공장은 평소대로 운영합니다. 수배전반에 연결하는 정전 작업만 필요해, 수용가와 날짜를 협의해 주말 · 휴일에 합니다.", ["ch4", "백서 4장 시공 공정"]],
+    ["남는 전기는 어떻게 되나요?", "자가소비형은 남는 전기가 한전 쪽으로 가지 않도록 역전력계전기가 막습니다. 그래서 공장 사용량에 맞춰 용량을 정합니다. 상계거래를 하면 남는 전기를 한전에 보내고 요금에서 뺄 수 있습니다.", ["types", "사업 유형 · 진행 절차"]],
+    ["청소나 점검은 얼마나 자주 하나요?", "원격 감시는 매일, 일상 점검은 월 1회, 정기 점검은 분기 1회, 정밀 점검(열화상 · 절연저항 · 청소 효과)은 연 1회 합니다. 청소는 발전량이 떨어지고 오염이 보일 때 합니다.", ["ch20", "백서 20장 O&M"]],
+    ["화재 위험은 없나요?", "주요 원인은 직류 쪽 커넥터 불량과 아크입니다. 같은 제조사 커넥터 사용, 케이블 보호, 정기 열화상 점검이 기본 예방책입니다.", ["ch25", "백서 25장 화재 · 전기 안전"]],
+  ];
+
+  /* ---------- ⌘K 통합 검색 ---------- */
+  function paletteItems(q) {
+    const t = q.toLowerCase().trim(); const out = [];
+    const hit = (s) => String(s || "").toLowerCase().includes(t);
+    const go = [["개요", "home"], ["백서 표지 · 개정 이력", "wp"], ["사례집", "cases"], ["이슈 레지스터", "cases-issues"], ["원가 분석", "cost"], ["현장 양식", "forms"], ["수익 시뮬레이터", "calc-go"], ["진행 체크리스트", "check-go"], ["자주 묻는 질문", "faq-go"]];
+    go.forEach(([n, h]) => { if (!t || hit(n)) out.push({ g: "바로가기", t: n, h }); });
+    if (!t) return out.slice(0, 9);
+    for (const { c } of CH) { if (hit(c.title)) out.push({ g: "백서 장", t: (typeof c.num === "number" ? c.num + "장 " : "") + c.title, h: c.id }); (c.sections || []).forEach((s) => { if (hit(s.text)) out.push({ g: "백서 절", t: s.text, h: s.id }); }); }
+    REP.forEach((r, i) => { if (hit(r.site) || hit(norm(r.site))) out.push({ g: "사례집", t: r.site, s: `${fmt(r.kwp, 2)}kWp · ${r.inspection || ""}`, h: "case-" + (i + 1) }); });
+    if (FORMS) FORMS.forms.forEach((f) => { if (hit(f.title) || hit(f.code)) out.push({ g: "양식", t: `양식 ${f.code} ${f.title}`, s: f.sub, h: "forms" }); });
+    issuesList().forEach((x) => { if (hit(x.issue) || hit(x.fix)) out.push({ g: "이슈", t: `#${x.no} ${x.issue}`, s: x.site, h: "cases-issues" }); });
+    doSearch(q).slice(0, 12).forEach((r) => out.push({ g: "본문", t: r.where, sh: r.h, h: r.href, q }));
+    return out.slice(0, 40);
+  }
+  function openPalette() {
+    if ($(".pal")) return;
+    const m = document.createElement("div"); m.className = "pal"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true");
+    m.innerHTML = `<div class="pal-box"><div class="pal-in">${icon("search", 18)}<input id="pal-q" placeholder="백서 · 사례집 · 양식 · 이슈 검색" autocomplete="off" aria-label="통합 검색"><kbd>Esc</kbd></div><div class="pal-list" id="pal-list"></div>
+      <div class="pal-foot"><span><kbd>↑</kbd><kbd>↓</kbd> 이동</span><span><kbd>Enter</kbd> 열기</span><span><kbd>⌘</kbd><kbd>K</kbd> 언제든 열기</span></div></div>`;
+    document.body.appendChild(m);
+    const inp = $("#pal-q", m), list = $("#pal-list", m); let sel = 0, items = [];
+    const paint = () => {
+      items = paletteItems(inp.value); sel = Math.min(sel, Math.max(0, items.length - 1));
+      let g = "";
+      list.innerHTML = items.map((it, k) => { const head = it.g !== g ? `<div class="pal-g">${esc(it.g)}</div>` : ""; g = it.g;
+        return `${head}<a class="pal-it ${k === sel ? "on" : ""}" href="#${it.h}" data-k="${k}"><b>${esc(it.t)}</b>${it.sh ? `<span>${it.sh}</span>` : it.s ? `<span>${esc(it.s)}</span>` : ""}</a>`; }).join("") || `<p class="pal-empty">“${esc(inp.value)}”에 맞는 결과가 없습니다.</p>`;
+    };
+    const close = () => { m.remove(); document.removeEventListener("keydown", key, true); };
+    const open = (it) => { if (!it) return; close(); if (it.q) pendingHighlight = it.q; const h = it.h; if (/-go$/.test(h)) { const id = h.replace("-go", ""); const go2 = () => { const e = document.getElementById(id === "check" ? "checklist" : id); if (e) e.scrollIntoView({ behavior: "smooth", block: "start" }); }; location.hash = id === "check" ? "forms" : "home"; setTimeout(go2, 450); } else location.hash = h; };
+    const key = (e) => {
+      if (e.key === "Escape") { e.preventDefault(); close(); }
+      else if (e.key === "ArrowDown") { e.preventDefault(); sel = Math.min(sel + 1, items.length - 1); paint(); $(".pal-it.on", list)?.scrollIntoView({ block: "nearest" }); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); sel = Math.max(sel - 1, 0); paint(); $(".pal-it.on", list)?.scrollIntoView({ block: "nearest" }); }
+      else if (e.key === "Enter") { e.preventDefault(); open(items[sel]); }
+    };
+    document.addEventListener("keydown", key, true);
+    inp.addEventListener("input", () => { sel = 0; paint(); });
+    list.addEventListener("click", (e) => { const a = e.target.closest(".pal-it"); if (a) { e.preventDefault(); open(items[+a.dataset.k]); } });
+    m.addEventListener("click", (e) => { if (e.target === m) close(); });
+    paint(); inp.focus();
+  }
+  document.addEventListener("keydown", (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); openPalette(); } else if (e.key === "/" && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); openPalette(); } });
+  document.addEventListener("click", (e) => { if (e.target.closest("#pal-btn")) openPalette(); if (e.target.closest("#theme-btn")) cycleTheme(); });
+  /* ---------- 테마 ---------- */
+  const THEMES = ["system", "light", "dark"];
+  function applyTheme(t) {
+    if (t === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+    const b = $("#theme-btn"); if (b) { b.innerHTML = { system: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></svg>', light: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>', dark: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>' }[t]; b.title = { system: "화면 테마: 시스템 설정", light: "화면 테마: 밝게", dark: "화면 테마: 어둡게" }[t]; }
+  }
+  function cycleTheme() { const cur = store.get("theme", "system"); const nx = THEMES[(THEMES.indexOf(cur) + 1) % 3]; store.set("theme", nx); applyTheme(nx); toast({ system: "시스템 설정을 따릅니다", light: "밝은 화면", dark: "어두운 화면" }[nx]); }
+
+  function checklist(root) {
+    const t = findTable(chByNum(3), "단계"); const box = $("#ck", root); if (!t || !box) { if (box) box.closest("section").hidden = true; return; }
+    const stages = bodyRows(t).map((r) => ({ name: r[0], tasks: r[1].split(/[,·]/).map((x) => x.trim()).filter(Boolean), out: r[3], gate: /^[-–—\s]*$/.test(r[4] || "") ? "" : r[4], who: r[2] }));
+    let site = store.get("ck-site", "새 현장");
+    const paint = () => {
+      const all = store.get("ck", {}); const st = all[site] || {};
+      const keysOf = (s, i) => [...s.tasks.map((_, k) => `${i}-${k}`), ...(s.gate ? [`${i}-g`] : [])];
+      const total = stages.reduce((a, s, i) => a + keysOf(s, i).length, 0), done = stages.reduce((a, s, i) => a + keysOf(s, i).filter((k) => st[k]).length, 0), pctv = total ? done / total : 0;
+      const sites = Object.keys(all); if (!sites.includes(site)) sites.unshift(site);
+      box.innerHTML = `<div class="ck-head">
+          <div class="ck-ring" style="--p:${(pctv * 100).toFixed(1)}"><b>${Math.round(pctv * 100)}%</b><span>${done}/${total}</span></div>
+          <div class="ck-site"><label for="ck-name">현장</label><div class="ck-row"><input id="ck-name" class="field" value="${esc(site)}" list="ck-sites"><datalist id="ck-sites">${sites.map((s) => `<option value="${esc(s)}">`).join("")}</datalist><button class="btn" type="button" id="ck-reset">초기화</button></div><small>이 기기에만 저장됩니다. 다른 이름을 넣으면 현장별로 따로 관리합니다.</small></div>
+        </div>
+        <ol class="ck-stages">${stages.map((s, i) => { const keys = keysOf(s, i); const d = keys.filter((k) => st[k]).length;
+          return `<li class="${d === keys.length ? "done" : d ? "doing" : ""}"><div class="ck-sh"><span class="ck-n">${i}</span><b>${esc(s.name.replace(/^\d+\.\s*/, ""))}</b><span class="chip">${esc(s.who)}</span><span class="ck-c">${d}/${keys.length}</span></div>
+            <div class="ck-items">${s.tasks.map((x, k) => `<label><input type="checkbox" data-k="${i}-${k}" ${st[`${i}-${k}`] ? "checked" : ""}><span>${esc(x)}</span></label>`).join("")}
+            ${s.gate ? `<label class="gate"><input type="checkbox" data-k="${i}-g" ${st[`${i}-g`] ? "checked" : ""}><span><b>진행 조건</b> ${esc(s.gate)}</span></label>` : ""}${s.out ? `<small>산출물: ${esc(s.out)}</small>` : ""}</div></li>`; }).join("")}</ol>`;
+    };
+    box.addEventListener("change", (e) => {
+      const c = e.target; const all = store.get("ck", {});
+      if (c.id === "ck-name") { site = c.value.trim() || "새 현장"; store.set("ck-site", site); paint(); return; }
+      if (!c.dataset.k) return; all[site] = all[site] || {}; all[site][c.dataset.k] = c.checked; store.set("ck", all); const k = c.dataset.k; paint(); $(`[data-k="${k}"]`, box)?.focus();
+    });
+    box.addEventListener("click", (e) => { if (e.target.id === "ck-reset") { const all = store.get("ck", {}); delete all[site]; store.set("ck", all); paint(); toast(`${site} 체크리스트를 비웠습니다`); } });
+    paint();
   }
   function linkify(h) {
     // "PART 1(1~5장)", "7장", "12장, 13장" → 링크
@@ -1522,6 +1668,9 @@
         <div class="form-body"><div class="form-meta"><span class="form-code">양식 ${esc(f.code)}</span><span class="chip">${esc(f.sub)}</span>${f.pages ? `<span class="chip">${f.pages}쪽${f.landscape ? " · 가로" : ""}</span>` : ""}</div>
           <h3>${esc(f.title)}</h3><p>${esc(f.desc)}</p>
           <div class="form-actions">${formBtn(f, "⬇ Word 받기")}</div></div></article>`).join("")}</div>
+
+      <section class="sec reveal" id="checklist"><div class="sec-head"><div><div class="eyebrow">온라인 체크리스트</div><h2>현장 진행 체크리스트</h2><p>백서 3장의 사업 단계와 '다음 단계 진행 조건'을 체크리스트로 만들었습니다. 현장 이름을 정하면 진행 상황이 이 기기에 저장됩니다.</p></div></div>
+        <div class="card ck" id="ck"></div></section>
       <div class="card panel reveal" style="margin-top:28px"><h3>미리 채워 둔 내용</h3>
         <ul class="filled">
           <li><b>A 현장실사</b> 11개 항목마다 확인 방법 · 기준과 2026 이슈 번호</li>
@@ -1534,6 +1683,7 @@
         </ul>
         <p class="from" style="margin-top:8px">백서 부록이 바뀌면 다음 업데이트 때 양식도 함께 다시 만들어집니다.</p></div>
     </div>`;
+    checklist(root);
   }
 
   /* ---------- 대외비 잠금 해제 ---------- */
@@ -1659,6 +1809,7 @@
   $("#foot").innerHTML = `<div class="wrap"><span>${esc(m.title || "")} ${esc(m.version || "")} · ${esc(m.docno || "")} · ${esc(m.org || "")}</span><span>${esc(m.badge || "")} · 외부 공유 금지${BUILT ? " · 갱신 " + esc(BUILT) : ""}</span></div>`;
   $("#ver").textContent = m.version || "";
   paintLockBtn();
+  applyTheme(store.get("theme", "system"));
   route();
   let saved = null; try { saved = sessionStorage.getItem("yh-solar:pw"); } catch (e) { /* 없음 */ }
   if (VAULT && saved) unlock(saved).catch(() => { try { sessionStorage.removeItem("yh-solar:pw"); } catch (e) { /* 없음 */ } });
