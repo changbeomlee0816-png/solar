@@ -29,14 +29,14 @@
     // 모듈 셀 (세로형 2:1, 하프컷 144셀)
     const cellTex = canvasTex(512, 1024, (g, w, h) => {
       g.fillStyle = "#c9ced6"; g.fillRect(0, 0, w, h); // 프레임 색 (테두리)
-      const m = 14; g.fillStyle = "#0d1830"; g.fillRect(m, m, w - 2 * m, h - 2 * m);
+      const m = 14; g.fillStyle = "#070c18"; g.fillRect(m, m, w - 2 * m, h - 2 * m);
       const cols = 6, rows = 24, gx = 3, cw = (w - 2 * m - gx * (cols + 1)) / cols, ch = (h - 2 * m - gx * (rows + 1)) / rows;
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
         const x = m + gx + c * (cw + gx), y = m + gx + r * (ch + gx) + (r >= rows / 2 ? 4 : 0);
         const gr = g.createLinearGradient(x, y, x + cw, y + ch);
-        gr.addColorStop(0, "#1b2d52"); gr.addColorStop(0.5, "#14244a"); gr.addColorStop(1, "#1d3159");
+        gr.addColorStop(0, "#12203f"); gr.addColorStop(0.5, "#0d1830"); gr.addColorStop(1, "#142447");
         g.fillStyle = gr; g.fillRect(x, y, cw, ch);
-        g.strokeStyle = "rgba(180,195,220,.22)"; g.lineWidth = 1;
+        g.strokeStyle = "rgba(170,188,220,.15)"; g.lineWidth = 1;
         for (let k = 1; k <= 9; k++) { g.beginPath(); g.moveTo(x + (cw * k) / 10, y); g.lineTo(x + (cw * k) / 10, y + ch); g.stroke(); }
       }
       g.fillStyle = "rgba(210,220,235,.55)"; g.fillRect(m, h / 2 - 1, w - 2 * m, 3);
@@ -65,7 +65,14 @@
       for (let i = 0; i < 260; i++) { g.fillStyle = `rgba(${90 + rnd() * 70},${40 + rnd() * 30},${20 + rnd() * 20},${0.25 + rnd() * 0.4})`; g.beginPath(); g.ellipse(rnd() * w, rnd() * h, 2 + rnd() * 14, 1 + rnd() * 5, 0, 0, 7); g.fill(); }
     });
     rustTex.wrapS = rustTex.wrapT = THREE.RepeatWrapping;
-    const grassTex = noiseTex("#6e9f4f", 0.22); grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping; grassTex.repeat.set(0.12, 0.12);
+    const grassTex = canvasTex(512, 512, (g, w, h) => {
+      g.fillStyle = "#5c8444"; g.fillRect(0, 0, w, h);
+      const cs = ["#527a3d", "#688f4c", "#4b7037", "#77965a", "#6c8a48", "#587f40"];
+      for (let i = 0; i < 260; i++) { const x = rnd() * w, y = rnd() * h, rx = 10 + rnd() * 52, ry = 8 + rnd() * 34, a = rnd() * 3; g.fillStyle = cs[i % cs.length]; g.globalAlpha = 0.16 + rnd() * 0.22;
+        for (const ox of [-w, 0, w]) for (const oy of [-h, 0, h]) { g.beginPath(); g.ellipse(x + ox, y + oy, rx, ry, a, 0, 7); g.fill(); } }
+      for (let i = 0; i < 52000; i++) { const v = rnd(); g.globalAlpha = 0.1 + rnd() * 0.22; g.fillStyle = v > 0.55 ? "#8fb06a" : "#35562a"; g.fillRect(rnd() * w, rnd() * h, 1.2, 1 + rnd() * 2.4); }
+      g.globalAlpha = 1;
+    }); grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping; grassTex.repeat.set(0.045, 0.045);
     const asphaltTex = noiseTex("#5b6270", 0.18); asphaltTex.wrapS = asphaltTex.wrapT = THREE.RepeatWrapping; asphaltTex.repeat.set(0.15, 0.15);
     const concreteTex = noiseTex("#c8ccd2", 0.12); concreteTex.wrapS = concreteTex.wrapT = THREE.RepeatWrapping;
 
@@ -75,7 +82,7 @@
     const std = (o) => keep(new THREE.MeshStandardMaterial(o));
     const phys = (o) => keep(new THREE.MeshPhysicalMaterial(o));
     const M = {
-      cells: phys({ map: cellTex, roughness: 0.3, metalness: 0.2, clearcoat: 0.7, clearcoatRoughness: 0.06, envMapIntensity: 0.65 }),
+      cells: phys({ map: cellTex, roughness: 0.3, metalness: 0.2, clearcoat: 0.55, clearcoatRoughness: 0.08, envMapIntensity: 0.5 }),
       alu: std({ color: 0xc7ccd4, roughness: 0.32, metalness: 0.9 }),
       aluDark: std({ color: 0x8d949e, roughness: 0.4, metalness: 0.85 }),
       steel: std({ color: 0x9aa3ad, roughness: 0.45, metalness: 0.7 }),
@@ -105,8 +112,8 @@
       asphalt: std({ map: asphaltTex, roughness: 0.9, metalness: 0 }),
       concrete: std({ map: concreteTex, roughness: 0.85, metalness: 0 }),
       line: std({ color: 0xffffff, roughness: 0.7, metalness: 0 }),
-      leaf: std({ color: 0x4f8f45, roughness: 0.9, metalness: 0 }),
-      leaf2: std({ color: 0x67a554, roughness: 0.9, metalness: 0 }),
+      leaf: std({ color: 0x3f6b35, roughness: 0.92, metalness: 0 }),
+      leaf2: std({ color: 0x55863f, roughness: 0.92, metalness: 0 }),
       bark: std({ color: 0x6b4f3a, roughness: 0.95, metalness: 0 }),
       cableBlack: std({ color: 0x20232a, roughness: 0.55, metalness: 0.1 }),
       cableRed: std({ color: 0xc83a32, roughness: 0.55, metalness: 0.1 }),
@@ -120,6 +127,22 @@
       wood: std({ color: 0xb08860, roughness: 0.8, metalness: 0 }),
       porcelain: std({ color: 0xf2efe8, roughness: 0.25, metalness: 0 }),
       polyGrey: std({ color: 0x9aa1aa, roughness: 0.5, metalness: 0.2 }),
+    };
+
+    const waterN = canvasTex(256, 256, (g, w, h) => {
+      const im = g.createImageData(w, h);
+      const q = Math.PI * 2 / 256, H = (x, y) => Math.sin(q * (3 * x + 2 * y)) * 0.5 + Math.sin(q * (5 * x - 7 * y) + 1.3) * 0.3 + Math.sin(q * (4 * x + 11 * y) + 0.6) * 0.22 + Math.sin(q * (-13 * x + 6 * y) + 2.1) * 0.12;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const dx = H(x + 1, y) - H(x - 1, y), dy = H(x, y + 1) - H(x, y - 1), i = (y * w + x) * 4; im.data[i] = 128 + dx * 900; im.data[i + 1] = 128 + dy * 900; im.data[i + 2] = 255; im.data[i + 3] = 255; }
+      g.putImageData(im, 0, 0);
+    }, false, [0.03, 0.03]);
+    const MX = {
+      head: std({ color: 0xffffff, emissive: 0xfff2cc, emissiveIntensity: 0.9, roughness: 0.2 }),
+      tail: std({ color: 0xb01818, emissive: 0x8a0f0f, emissiveIntensity: 0.7, roughness: 0.3 }),
+      leafD: std({ color: 0x2f5a30, roughness: 0.92, metalness: 0 }),
+      leaf3: std({ color: 0x6a9a4a, roughness: 0.92, metalness: 0 }),
+      trGreen: std({ color: 0x5f7f6a, roughness: 0.5, metalness: 0.35 }),
+      evGreen: std({ color: 0x14a86e, roughness: 0.45, metalness: 0.1 }),
+      waterN,
     };
 
     /* ------------------------------------------------------------------
@@ -163,7 +186,7 @@
     /* ------------------------------------------------------------------
        구성 요소
        ------------------------------------------------------------------ */
-    let moduleCount = 0, focus = null;
+    let moduleCount = 0, focus = null, studioMode = false;
     let WS = 1; // 작업자 크기 (넓은 장면에서는 잘 보이게 키운다)
     const MOD = { w: 1.134, l: 2.384, t: 0.035 };
     const modGeo = G("module", () => new THREE.BoxGeometry(MOD.w, MOD.t, MOD.l));
@@ -200,24 +223,36 @@
       return g;
     }
 
+    function blobGeo(v) {
+      return G("blob" + v, () => { const g = new THREE.SphereGeometry(1, 18, 12), p = g.attributes.position;
+        for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i); const n = 1 + 0.17 * Math.sin(x * 3.1 + v * 1.7) * Math.cos(y * 2.7 + v) + 0.12 * Math.sin(z * 4.3 + x * 2.2 + v * 2.3) + 0.08 * Math.sin(y * 6.1 + z * 5.3 + v); p.setXYZ(i, x * n, y * n * 0.88, z * n); }
+        g.computeVertexNormals(); return g; });
+    }
     function tree(parent, x, z, s = 1, kind = 0) {
-      const g = group(parent, x, 0, z); g.scale.setScalar(s);
-      cyl(0.12, 0.18, 1.6, M.bark, g, 0, 0.8, 0, 10);
+      const g = group(parent, x, 0, z); g.scale.setScalar(s); g.rotation.y = (Math.abs(x * 7.3 + z * 3.1)) % 6.28;
       if (kind === 1) { // 침엽수
-        for (let i = 0; i < 3; i++) { const c = mesh(G(`cone${i}`, () => new THREE.ConeGeometry(1.25 - i * 0.3, 1.7, 14)), i % 2 ? M.leaf : M.leaf2, g, 0, 1.9 + i * 0.85, 0); c.rotation.y = i; }
+        cyl(0.1, 0.16, 1.3, M.bark, g, 0, 0.65, 0, 8);
+        for (let i = 0; i < 5; i++) { const c = mesh(G(`cone${i}`, () => new THREE.ConeGeometry(1.15 - i * 0.2, 1.3, 11)), [MX.leafD, M.leaf][i % 2], g, 0, 1.45 + i * 0.7, 0); c.rotation.y = i * 1.3; }
       } else {
-        const blobs = [[0, 2.6, 0, 1.25], [0.7, 2.2, 0.3, 0.9], [-0.6, 2.3, -0.2, 0.95], [0.1, 3.3, 0.1, 0.85], [-0.2, 2.1, 0.7, 0.8]];
-        blobs.forEach(([bx, by, bz, r], i) => { const m = mesh(G(`ico${r}`, () => new THREE.IcosahedronGeometry(r, 2)), i % 2 ? M.leaf2 : M.leaf, g, bx, by, bz); m.rotation.set(i, i * 2, 0); });
+        cyl(0.12, 0.2, 2.2, M.bark, g, 0, 1.1, 0, 10);
+        const br = cyl(0.05, 0.09, 1.1, M.bark, g, 0.3, 2.1, 0.1, 6); br.rotation.z = -0.6;
+        const blobs = [[0, 3.0, 0, 1.2], [0.85, 2.55, 0.3, 0.92], [-0.8, 2.65, -0.2, 0.98], [0.1, 3.8, 0.1, 0.86], [-0.2, 2.45, 0.85, 0.82], [0.3, 2.5, -0.85, 0.88], [-0.55, 3.45, 0.45, 0.72], [0.6, 3.4, -0.4, 0.72]];
+        blobs.forEach(([bx, by, bz, r], i) => { const m = mesh(blobGeo(i % 3), [M.leaf, M.leaf2, MX.leaf3, MX.leafD][i % 4], g, bx, by, bz); m.scale.setScalar(r); m.rotation.set(i, i * 2, 0); });
       }
       return g;
     }
 
     function car(parent, x, z, ry, color = 0xf2f4f7) {
       const g = group(parent, x, 0, z); g.rotation.y = ry;
-      const paint = phys({ color, roughness: 0.25, metalness: 0.6, clearcoat: 1, clearcoatRoughness: 0.05 });
-      rbox(1.8, 0.62, 4.3, 0.18, paint, g, 0, 0.62, 0);
-      rbox(1.6, 0.55, 2.3, 0.2, M.glass, g, 0, 1.15, -0.2);
-      for (const sx of [-0.82, 0.82]) for (const sz of [-1.35, 1.35]) { const w = cyl(0.34, 0.34, 0.24, M.rubber, g, sx, 0.34, sz, 18); w.rotation.z = Math.PI / 2; }
+      const paint = phys({ color, roughness: 0.22, metalness: 0.65, clearcoat: 1, clearcoatRoughness: 0.04 });
+      rbox(1.8, 0.56, 4.4, 0.18, paint, g, 0, 0.62, 0);
+      const cabin = G("cabin", () => { const sh = new THREE.Shape(); sh.moveTo(-1.3, 0); sh.lineTo(-0.8, 0.5); sh.lineTo(0.5, 0.5); sh.lineTo(1.25, 0); sh.lineTo(-1.3, 0);
+        const ge = new THREE.ExtrudeGeometry(sh, { depth: 1.42, bevelEnabled: true, bevelThickness: 0.07, bevelSize: 0.07, bevelSegments: 3 }); ge.translate(0, 0, -0.71); ge.rotateY(Math.PI / 2); return ge; });
+      mesh(cabin, M.glass, g, 0, 0.86, -0.15);
+      rbox(1.5, 0.06, 1.34, 0.03, paint, g, 0, 1.42, 0.0);
+      for (const sx of [-0.84, 0.84]) for (const sz of [-1.38, 1.38]) { const w = cyl(0.33, 0.33, 0.24, M.rubber, g, sx, 0.33, sz, 20); w.rotation.z = Math.PI / 2; const r = cyl(0.19, 0.19, 0.26, M.alu, g, sx, 0.33, sz, 14); r.rotation.z = Math.PI / 2; }
+      for (const sx of [-0.6, 0.6]) { box(0.42, 0.11, 0.05, MX.head, g, sx, 0.72, 2.19, false); box(0.42, 0.1, 0.05, MX.tail, g, sx, 0.74, -2.19, false); }
+      box(1.3, 0.14, 0.05, M.black, g, 0, 0.48, 2.19, false);
       return g;
     }
 
@@ -384,7 +419,8 @@
       const geo = keep(new THREE.ExtrudeGeometry(rrShape(w, d, r), { depth: th, bevelEnabled: true, bevelThickness: 0.15, bevelSize: 0.15, bevelSegments: 3, curveSegments: 16 }));
       geo.rotateX(Math.PI / 2); geo.translate(0, 0, 0);
       const base = mesh(geo, [M.grass, M.soil], g, 0, -0.17, 0); base.castShadow = true;
-      if (o.yard) { const yg = keep(new THREE.ShapeGeometry(rrShape(o.yard[0], o.yard[1], 0.6), 8)); yg.rotateX(-Math.PI / 2); const y = mesh(yg, M.asphalt, g, o.yard[2] || 0, 0.035, o.yard[3] || 0, false); y.receiveShadow = true;
+      if (o.yard) { const kg = keep(new THREE.ShapeGeometry(rrShape(o.yard[0] + 0.5, o.yard[1] + 0.5, 0.85), 8)); kg.rotateX(-Math.PI / 2); mesh(kg, M.concrete, g, o.yard[2] || 0, 0.022, o.yard[3] || 0, false);
+        const yg = keep(new THREE.ShapeGeometry(rrShape(o.yard[0], o.yard[1], 0.6), 8)); yg.rotateX(-Math.PI / 2); const y = mesh(yg, M.asphalt, g, o.yard[2] || 0, 0.035, o.yard[3] || 0, false); y.receiveShadow = true;
         if (o.lines) for (let i = 0; i < o.lines; i++) box(0.12, 0.01, 2.4, M.line, g, (o.yard[2] || 0) - o.yard[0] / 2 + 3 + i * 2.8, 0.045, (o.yard[3] || 0) + o.yard[1] / 2 - 1.8, false);
       }
       return g;
@@ -422,6 +458,47 @@
     const scene = new THREE.Scene();
     const root = group(scene);
     const hotspots = [];
+    const V3 = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+    const hs = (key, x, y, z, t, s2, tag) => hotspots.push({ key, pos: new THREE.Vector3(x, y, z), t, s: s2, tag });
+    function invAt(parent, x, y, z, ry, s2 = 1) { const iv = inverterUnit(parent, x, y, z, s2); iv.rotation.y = ry; return iv; }
+    function cubicleAt(parent, x, z, ry, bays = 2, s2 = 1) { const g = group(parent, x, 0, z); g.rotation.y = ry; switchboard(g, bays, s2); return g; }
+    function transformerAt(parent, x, z, ry = 0) {
+      const g = group(parent, x, 0, z); g.rotation.y = ry;
+      box(2.6, 0.2, 2.4, M.concrete, g, 0, 0.1, 0, false); rbox(1.8, 1.6, 1.2, 0.06, MX.trGreen, g, 0, 1.0, -0.2); box(1.9, 0.08, 1.3, M.cabinetDark, g, 0, 1.84, -0.2);
+      for (let i = 0; i < 10; i++) box(0.04, 1.2, 0.5, MX.trGreen, g, -0.76 + i * 0.17, 0.95, 0.62);
+      for (let i = 0; i < 3; i++) { cyl(0.05, 0.07, 0.34, M.porcelain, g, -0.45 + i * 0.45, 2.05, -0.2, 10); for (let d = 0; d < 3; d++) cyl(0.1, 0.1, 0.02, M.porcelain, g, -0.45 + i * 0.45, 1.96 + d * 0.07, -0.2, 12); }
+      box(0.3, 0.3, 0.02, M.yellow, g, 0, 1.2, -0.81);
+      return g;
+    }
+    function cctvAt(parent, x, z, ry = 0) {
+      const g = group(parent, x, 0, z); g.rotation.y = ry;
+      cyl(0.06, 0.09, 4.6, M.steel, g, 0, 2.3, 0, 10); box(0.6, 0.05, 0.05, M.steel, g, 0.28, 4.4, 0);
+      rbox(0.18, 0.16, 0.4, 0.04, M.white, g, 0.5, 4.28, 0.06); const l = cyl(0.05, 0.05, 0.04, M.black, g, 0.5, 4.28, 0.28, 10); l.rotation.x = Math.PI / 2;
+      rbox(0.4, 0.5, 0.22, 0.03, M.cabinet, g, 0, 1.5, 0.14);
+      return g;
+    }
+    function evAt(parent, x, z, ry = 0) {
+      const g = group(parent, x, 0, z); g.rotation.y = ry;
+      box(0.7, 0.08, 0.55, M.concrete, g, 0, 0.04, 0, false); rbox(0.46, 1.5, 0.28, 0.07, M.white, g, 0, 0.83, 0); box(0.47, 0.14, 0.29, MX.evGreen, g, 0, 0.4, 0);
+      box(0.28, 0.2, 0.02, M.screen, g, 0, 1.22, 0.145); sph(0.025, M.greenLed, g, 0, 1.45, 0.14);
+      tube([[0.2, 1.0, 0.12], [0.34, 0.55, 0.22], [0.27, 0.9, 0.17]], 0.018, M.cableBlack, g, 12);
+      for (const sx of [-0.5, 0.5]) box(0.1, 0.8, 0.1, M.yellow, g, sx, 0.4, 0.45);
+      return g;
+    }
+    function trayRun(parent, a, b, w = 0.3, mat = M.steel) {
+      const va = V3(a), vb = V3(b), len = va.distanceTo(vb);
+      const m = mesh(keep(new THREE.BoxGeometry(len, 0.07, w)), mat, parent, (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2);
+      m.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), vb.sub(va).normalize()); return m;
+    }
+    function handhole(parent, x, z) { cyl(0.36, 0.36, 0.03, M.cabinetDark, parent, x, 0.065, z, 20).castShadow = false; }
+    function service(px, pz, to) { for (const k of [-1, 1]) wire([px + k, 11.32, pz], [to[0], to[1], to[2] + k * 0.25], 1.0, 0.028, M.cableBlack, root); }
+    function weatherMast(parent, x, z) {
+      const g = group(parent, x, 0, z); cyl(0.04, 0.05, 3.2, M.steel, g, 0, 1.6, 0, 8); box(0.9, 0.04, 0.04, M.steel, g, 0, 3.0, 0);
+      const pyr = cyl(0.09, 0.09, 0.06, M.white, g, -0.4, 3.07, 0, 14); sph(0.06, M.glass, g, -0.4, 3.12, 0);
+      for (let i = 0; i < 3; i++) { const c = sph(0.05, M.black, g, 0.4 + Math.cos(i * 2.1) * 0.14, 3.12, Math.sin(i * 2.1) * 0.14); } cyl(0.015, 0.015, 0.14, M.steel, g, 0.4, 3.08, 0, 6);
+      rbox(0.3, 0.36, 0.16, 0.02, M.cabinet, g, 0, 1.4, 0.1);
+      return g;
+    }
     let shadowSize = 40, view = { az: 32, el: 28, fov: 30, margin: 1.06 };
     const S = opt.shot || "hero";
 
@@ -487,7 +564,7 @@
       return g;
     }
 
-    function studio(size) { catcher(scene, size * 3, 0, 0.3); }
+    function studio(size) { studioMode = true; catcher(scene, size * 3, 0, 0.3); }
 
     switch (S) {
       case "hero": case "site": {
@@ -627,146 +704,249 @@
         view = { az: 30, el: 14, fov: 26, margin: 1.08 }; shadowSize = 18; break;
       }
       case "flatroof": {
-        island(root, 44, 34, { yard: [40, 9, 0, 11.5], lines: 12 });
-        const b = group(root, 0, 0, -3.5);
+        WS = 1.3;
+        island(root, 46, 34, { yard: [40, 9, -1, 11.5], lines: 12 });
+        const b = group(root, -2, 0, -3.5);
         const BW = 28, BD = 18, BH = 10.5;
         const wt = wallTex.clone(); wt.needsUpdate = true; wt.repeat.set(1, 3); keep(wt);
         box(BW, BH, BD, std({ map: wt, roughness: 0.6 }), b, 0, BH / 2, 0);
-        for (let f = 0; f < 3; f++) { box(BW - 2, 1.3, 0.1, M.glass, b, 0, 1.9 + f * 3.2, BD / 2 + 0.06); box(BW - 1.6, 0.18, 0.3, M.wallBand, b, 0, 1.15 + f * 3.2, BD / 2 + 0.12); box(0.1, 1.3, BD - 2, M.glass, b, BW / 2 + 0.06, 1.9 + f * 3.2, 0); }
-        box(4, 2.6, 0.12, M.cabinetDark, b, -BW / 2 + 4, 1.3, BD / 2 + 0.08);
+        for (let f = 0; f < 3; f++) { box(BW - 2, 1.3, 0.1, M.glass, b, 0, 1.9 + f * 3.2, BD / 2 + 0.06); box(BW - 1.6, 0.18, 0.3, M.wallBand, b, 0, 1.15 + f * 3.2, BD / 2 + 0.12); box(0.1, 1.3, BD - 2, M.glass, b, BW / 2 + 0.06, 1.9 + f * 3.2, 0); for (let k = 0; k < 9; k++) box(0.08, 1.3, 0.14, M.alu, b, -BW / 2 + 2.5 + k * 2.9, 1.9 + f * 3.2, BD / 2 + 0.08); }
+        box(4, 2.6, 0.12, M.cabinetDark, b, -BW / 2 + 4, 1.3, BD / 2 + 0.08); box(5, 0.15, 1.6, M.cabinet, b, -BW / 2 + 4, 2.8, BD / 2 + 0.8);
         box(BW - 0.6, 0.12, BD - 0.6, M.concrete, b, 0, BH + 0.06, 0, false);
-        for (const [w, d, x, z] of [[BW, 0.3, 0, BD / 2 - 0.15], [BW, 0.3, 0, -BD / 2 + 0.15], [0.3, BD, BW / 2 - 0.15, 0], [0.3, BD, -BW / 2 + 0.15, 0]]) box(w, 0.9, d, M.cabinet, b, x, BH + 0.45, z);
+        for (const [w, d, x, z] of [[BW, 0.3, 0, BD / 2 - 0.15], [BW, 0.3, 0, -BD / 2 + 0.15], [0.3, BD, BW / 2 - 0.15, 0], [0.3, BD, -BW / 2 + 0.15, 0]]) { box(w, 0.9, d, M.cabinet, b, x, BH + 0.45, z); box(w + 0.06, 0.06, d + 0.06, M.alu, b, x, BH + 0.93, z); }
         // 경사 거치대 + 무게 블록 (무타공)
         const tilt = 0.26, rows = 4, list = [];
+        const skip = (x, r) => x > BW / 2 - 6.5 && r !== 2;
         for (let r = 0; r < rows; r++) {
           const z = -BD / 2 + 2.6 + r * 3.6;
-          for (let c = 0; c < 20; c++) { const x = -BW / 2 + 2.6 + c * 1.16; if (x > BW / 2 - 6.5 && r < 2) continue; list.push([x, BH + 0.62, z, tilt, 0]); }
-          for (let x = -BW / 2 + 2.4; x < BW / 2 - 2; x += 2.3) { if (x > BW / 2 - 6.5 && r < 2) continue; box(0.5, 0.18, 0.5, M.concrete, b, x, BH + 0.21, z - 0.95); box(0.5, 0.18, 0.5, M.concrete, b, x, BH + 0.21, z + 0.95); box(0.05, 0.75, 0.05, M.aluDark, b, x, BH + 0.62, z - 0.95); box(0.05, 0.3, 0.05, M.aluDark, b, x, BH + 0.42, z + 0.95); }
+          for (let c = 0; c < 20; c++) { const x = -BW / 2 + 2.6 + c * 1.16; if (skip(x, r)) continue; list.push([x, BH + 0.62, z, tilt, 0]); }
+          for (let x = -BW / 2 + 2.4; x < BW / 2 - 2; x += 2.3) { if (skip(x, r)) continue; box(0.5, 0.18, 0.5, M.concrete, b, x, BH + 0.21, z - 0.95); box(0.5, 0.18, 0.5, M.concrete, b, x, BH + 0.21, z + 0.95); box(0.05, 0.75, 0.05, M.aluDark, b, x, BH + 0.62, z - 0.95); box(0.05, 0.3, 0.05, M.aluDark, b, x, BH + 0.42, z + 0.95); }
+          trayRun(b, [-BW / 2 + 2, BH + 0.2, z - 1.25], [BW / 2 - 6.9, BH + 0.2, z - 1.25], 0.16);
         }
         moduleArray(b, list); moduleCount += list.length;
-        // 실외기 · 물탱크
-        for (let i = 0; i < 3; i++) { const u = group(b, BW / 2 - 4.6 + (i % 2) * 2.2, BH + 0.12, -BD / 2 + 2.4 + Math.floor(i / 2) * 2.4); rbox(1.8, 1.1, 1.2, 0.08, M.white, u, 0, 0.55, 0); const fan = cyl(0.42, 0.42, 0.06, M.black, u, 0, 1.12, 0, 24); }
-        cyl(1.1, 1.1, 2.2, M.cabinet, b, BW / 2 - 3.5, BH + 1.2, BD / 2 - 3, 28);
-        tree(root, -19, 3, 0.9, 0); tree(root, 18.5, -12, 1, 1); tree(root, -18, -13, 1, 1);
-        car(root, -12, 11.5, 0, 0x2b3a55); car(root, -6.4, 11.5, 0, 0xf2f4f7); car(root, 3, 11.5, 0, 0x8a96a8); car(root, 9, 11.5, 0, 0xc8102e);
-        hotspots.push({ key: "module", pos: new THREE.Vector3(-4, BH + 1.2, -3.5) });
+        // 실외기
+        for (let i = 0; i < 3; i++) { const u = group(b, BW / 2 - 4.6 + (i % 2) * 2.2, BH + 0.12, -BD / 2 + 2.4 + Math.floor(i / 2) * 2.4); rbox(1.8, 1.1, 1.2, 0.08, M.white, u, 0, 0.55, 0); cyl(0.42, 0.42, 0.06, M.black, u, 0, 1.12, 0, 24); }
+        // 옥탑 + 인버터 3대 (서쪽 벽) + 접속반
+        const bh = group(b, BW / 2 - 3.6, BH + 0.12, BD / 2 - 3.4);
+        box(4.4, 2.9, 4.4, M.wall, bh, 0, 1.45, 0); box(4.7, 0.15, 4.7, M.cabinet, bh, 0, 2.97, 0); box(0.9, 2.0, 0.08, M.cabinetDark, bh, 0.8, 1.0, -2.22);
+        for (let i = 0; i < 3; i++) invAt(bh, -2.36, 1.5, -1.25 + i * 1.25, -Math.PI / 2, 1.0);
+        box(0.12, 0.1, 3.9, M.steel, bh, -2.3, 2.3, 0);
+        // 지붕 트레이 → 인버터, 동쪽 벽 수직 덕트 → 지상 수배전반
+        trayRun(b, [BW / 2 - 6.9, BH + 0.2, -BD / 2 + 1.3], [BW / 2 - 6.9, BH + 0.2, BD / 2 - 3.4]);
+        trayRun(b, [BW / 2 - 6.9, BH + 0.2, BD / 2 - 3.4], [BW / 2 - 5.9, BH + 0.2, BD / 2 - 3.4]);
+        box(0.3, BH + 0.4, 0.14, M.steel, b, BW / 2 + 0.09, (BH + 0.4) / 2, BD / 2 - 3.4);
+        cubicleAt(root, 14.7, 2.1, Math.PI / 2, 2);
+        pole(root, 19, 5.2, {}); service(19, 5.2, [14.7, 2.75, 2.1]);
+        tree(root, -21, 3, 0.9, 0); tree(root, 20.5, -12, 1, 1); tree(root, -20, -13, 1, 1); tree(root, 20.5, -3, 0.8, 0);
+        car(root, -13, 11.5, 0, 0x2b3a55); car(root, -7.4, 11.5, 0, 0xf2f4f7); car(root, 2, 11.5, 0, 0x8a96a8); car(root, 8, 11.5, 0, 0xc8102e);
+        worker(root, 5.2, 0.8, { y: BH + 0.12, ry: 1.2, armR: -1.1 });
+        hs("module", -6, BH + 1.3, -3.5);
+        hs("ballast", -13.6, BH + 0.5, 1.85, "무게 블록 기초", "지붕에 구멍을 내지 않고 콘크리트 블록 무게로 거치대를 눌러 고정합니다. 슬래브 하중 검토가 먼저입니다", "무타공");
+        hs("inverter", 6.0, BH + 1.9, 2.1);
+        hs("cable", 5.1, BH + 0.5, -3.5, "케이블 트레이", "줄마다 모은 전선을 인버터까지 보호하며 잇습니다. 옥상 방수층을 밟지 않게 띄워 깝니다");
+        hs("board", 14.7, 2.9, 2.1); hs("grid", 19, 9, 5.2);
         view = { az: 30, el: 30, fov: 28, margin: 1.0 }; shadowSize = 36; break;
       }
       case "carport": {
-        island(root, 46, 32, { yard: [42, 28, 0, 0] });
+        WS = 1.25;
+        island(root, 48, 32, { yard: [44, 28, 0, 0] });
         const colors = [0xf2f4f7, 0x2b3a55, 0xc8102e, 0x8a96a8, 0x1b1f27, 0xe7e9ee, 0x3a6ad1, 0xf2f4f7, 0x5d6878];
         let ci = 0; const list = [];
         for (const zc of [-6.5, 6.5]) {
-          // 주차선
-          for (let i = 0; i <= 14; i++) box(0.12, 0.01, 5, M.line, root, -17.5 + i * 2.5, 0.05, zc + (zc < 0 ? -0.2 : 0.2), false);
-          // 캐노피: 기둥 · 보 · 모듈 (남쪽으로 약 7도)
-          const cg = group(root, 0, 0, zc);
-          for (let x = -15; x <= 15; x += 7.5) { box(0.32, 3.1, 0.32, M.cabinetDark, cg, x, 1.55, -0.6); box(0.6, 0.15, 0.6, M.concrete, cg, x, 0.08, -0.6, false); box(0.22, 0.32, 6.2, M.cabinetDark, cg, x, 3.2, 0.1).rotation.x = 0.12; }
+          for (let i = 0; i <= 14; i++) box(0.12, 0.01, 5, M.line, root, -18.5 + i * 2.5, 0.06, zc + (zc < 0 ? -0.2 : 0.2), false);
+          const cg = group(root, -1, 0, zc);
+          for (let x = -15; x <= 15; x += 7.5) {
+            box(0.32, 3.1, 0.32, M.cabinetDark, cg, x, 1.55, -0.6); box(0.7, 0.3, 0.7, M.concrete, cg, x, 0.15, -0.6);
+            box(0.36, 0.9, 0.36, M.yellow, cg, x, 0.75, -0.6); // 차량 충돌 보호
+            box(0.22, 0.32, 6.2, M.cabinetDark, cg, x, 3.2, 0.1).rotation.x = 0.12;
+            const br = box(0.12, 0.12, 1.9, M.cabinetDark, cg, x, 2.55, 0.45); br.rotation.x = -0.75;
+          }
           for (const z of [-2.3, 0, 2.3]) box(32, 0.12, 0.12, M.steel, cg, 0, 3.32 - z * 0.12, z);
-          for (let c = 0; c < 27; c++) for (let r = 0; r < 2; r++) list.push([-15.1 + c * 1.16, 3.5 - (r - 0.5) * 2.4 * 0.12, zc + (r - 0.5) * 2.42, 0.12, 0]);
-          for (let i = 0; i < 14; i++) { if ((i + (zc > 0 ? 1 : 0)) % 4 === 3) continue; car(root, -16.25 + i * 2.5, zc + (zc < 0 ? -0.3 : 0.3), zc < 0 ? Math.PI / 2 * 0 : Math.PI, colors[ci++ % colors.length]).scale.setScalar(0.92); }
+          for (let c = 0; c < 27; c++) for (let r = 0; r < 2; r++) list.push([-16.1 + c * 1.16, 3.5 - (r - 0.5) * 2.4 * 0.12, zc + (r - 0.5) * 2.42, 0.12, 0]);
+          box(32, 0.14, 0.16, M.cabinet, cg, 0, 3.02, 2.95); // 빗물받이
+          cyl(0.05, 0.05, 3.0, M.cabinet, cg, 15.3, 1.5, 2.95, 8);
+          trayRun(cg, [-15, 2.95, -0.6], [15, 2.95, -0.6], 0.22);
+          // 인버터: 기둥에 부착 (캐노피마다 2대)
+          for (const x of [15, 0]) invAt(cg, x + 0.24, 1.75, -0.6, Math.PI / 2, 0.95);
+          // 조명
+          for (let x = -11.25; x <= 12; x += 7.5) box(0.9, 0.05, 0.14, MX.head, cg, x, 3.0, 0.2, false);
+          for (let i = 0; i < 14; i++) { if ((i + (zc > 0 ? 1 : 0)) % 4 === 3) continue; car(root, -17.25 + i * 2.5, zc + (zc < 0 ? -0.3 : 0.3), zc < 0 ? 0 : Math.PI, colors[ci++ % colors.length]).scale.setScalar(0.92); }
         }
         moduleArray(root, list); moduleCount += list.length;
-        // 전기차 충전기
-        const ev = group(root, 17.8, 0, -3.2); rbox(0.5, 1.5, 0.3, 0.08, M.white, ev, 0, 0.75, 0); box(0.3, 0.2, 0.02, M.screen, ev, 0, 1.15, 0.16); sph(0.03, M.greenLed, ev, 0, 1.38, 0.15);
-        tree(root, -21, 12, 0.8, 1); tree(root, 21, 12, 0.9, 0); tree(root, -21, -12.5, 0.9, 0); tree(root, 21, -12.5, 0.8, 1);
-        hotspots.push({ key: "module", pos: new THREE.Vector3(0, 4.2, 6.5) });
+        for (const x of [10.25, 12.75, 15.25]) evAt(root, x, -9.6, 0);
+        for (const [x, z] of [[14.6, -7.1], [14.6, 0], [14.6, 5.9], [18, 0]]) handhole(root, x, z);
+        cubicleAt(root, 20.2, 0, -Math.PI / 2, 2);
+        for (const z of [-1.5, 1.5]) box(0.12, 0.9, 0.12, M.yellow, root, 19.1, 0.45, z);
+        pole(root, 21, 11, {}); service(21, 11, [20.2, 2.75, 0.3]);
+        tree(root, -22.5, 12, 0.8, 1); tree(root, 22.5, -12.5, 0.9, 0); tree(root, -22.5, -12.5, 0.9, 0);
+        worker(root, 12.2, -8.6, { ry: 0.3, armR: -1.0, vest: M.navyCloth });
+        hs("module", -1, 4.2, 6.5);
+        hs("column", -8.5, 1.6, 5.9, "기둥 · 기초", "차가 다닐 높이(2.5m 이상)를 확보하고, 주차선에 맞춰 세웁니다. 기초 자리 아래 배관을 먼저 확인합니다", "구조");
+        hs("inverter", 14.4, 2.0, 5.9, "인버터 (기둥 부착)", "캐노피 기둥에 달아 직류를 교류로 바꿉니다. 교류 전선은 땅속 관로로 수배전반까지 갑니다", "DC → AC");
+        hs("ev", 12.75, 1.5, -9.6, "전기차 충전기", "만든 전기를 충전에 바로 쓸 수 있어 함께 설치하는 경우가 많습니다");
+        hs("board", 20.2, 2.9, 0); hs("grid", 21, 9, 11);
         view = { az: 32, el: 30, fov: 28, margin: 1.0 }; shadowSize = 34; break;
       }
       case "ground": {
-        island(root, 60, 42);
+        WS = 1.3;
+        island(root, 64, 44);
         const gravel = noiseTex("#b9b3a6", 0.2); gravel.wrapS = gravel.wrapT = THREE.RepeatWrapping; gravel.repeat.set(0.2, 0.2);
         const gm = std({ map: gravel, roughness: 0.95 });
-        const rg = keep(new THREE.ShapeGeometry(rrShape(4, 38, 0.5), 4)); rg.rotateX(-Math.PI / 2); mesh(rg, gm, root, 27.5, 0.04, 0, false);
+        const rg = keep(new THREE.ShapeGeometry(rrShape(6.4, 38, 0.5), 4)); rg.rotateX(-Math.PI / 2); mesh(rg, gm, root, 26.4, 0.04, 0.6, false);
         const list = [], tilt = 0.44;
         for (let r = 0; r < 6; r++) {
           const z = -15 + r * 5.6;
-          for (let c = 0; c < 36; c++) for (let k = 0; k < 2; k++) list.push([-21 + c * 1.16, 1.25 + (k - 0.5) * -2.42 * Math.sin(tilt) + 0.0, z + (k - 0.5) * 2.42 * Math.cos(tilt), tilt, 0]);
-          for (let x = -21; x <= 20; x += 3.5) { cyl(0.05, 0.05, 1.0, M.steel, root, x, 0.5, z + 2.1, 10); cyl(0.05, 0.05, 2.2, M.steel, root, x, 1.1, z - 2.1, 10); }
+          for (let c = 0; c < 36; c++) for (let k = 0; k < 2; k++) list.push([-22 + c * 1.16, 1.25 + (k - 0.5) * -2.42 * Math.sin(tilt), z + (k - 0.5) * 2.42 * Math.cos(tilt), tilt, 0]);
+          for (let x = -22; x <= 19; x += 3.5) { cyl(0.05, 0.05, 1.0, M.steel, root, x, 0.5, z + 2.1, 10); cyl(0.05, 0.05, 2.2, M.steel, root, x, 1.1, z - 2.1, 10); const br = box(0.05, 0.05, 4.7, M.steel, root, x, 1.45, z); br.rotation.x = tilt; }
+          for (const k of [-1.1, 1.1]) { const pr = box(42, 0.06, 0.06, M.aluDark, root, -1.6, 1.2 - k * Math.sin(tilt), z + k * Math.cos(tilt)); }
+          // 스트링 인버터: 줄 끝 기둥
+          box(0.9, 1.2, 0.06, M.steel, root, 20.05, 1.35, z - 2.1); invAt(root, 20.05, 1.4, z - 2.0, 0, 0.95);
+          trayRun(root, [20.6, 0.12, z - 2.1], [23.6, 0.12, z - 2.1], 0.2, M.concrete);
         }
         moduleArray(root, list); moduleCount += list.length;
-        // 펜스
-        const fenceMat = std({ color: 0x3f6f52, roughness: 0.6, metalness: 0.3, transparent: true, opacity: 0.45 });
-        const FX = 25, FZ = 19;
-        for (let x = -FX; x <= FX; x += 3.125) for (const z of [-FZ, FZ]) cyl(0.04, 0.04, 1.9, M.steel, root, x, 0.95, z, 8);
-        for (let z = -FZ; z <= FZ; z += 3.17) for (const x of [-FX, FX]) cyl(0.04, 0.04, 1.9, M.steel, root, x, 0.95, z, 8);
-        box(2 * FX, 1.7, 0.02, fenceMat, root, 0, 0.95, FZ, false); box(2 * FX, 1.7, 0.02, fenceMat, root, 0, 0.95, -FZ, false); box(0.02, 1.7, 2 * FZ, fenceMat, root, -FX, 0.95, 0, false); box(0.02, 1.7, 2 * FZ - 5, fenceMat, root, FX, 0.95, -2.5, false);
-        // 인버터 · 변압기 스키드
-        const sk = group(root, 27.2, 0, -12); rbox(2.4, 2.6, 6, 0.1, M.white, sk, 0, 1.4, 0); box(2.5, 0.15, 6.1, M.wallBand, sk, 0, 2.75, 0); for (let i = 0; i < 4; i++) box(0.02, 1.8, 1.1, M.offWhite, sk, -1.22, 1.3, -2.1 + i * 1.4);
-        const tr = group(root, 27.2, 0, -5.5); rbox(1.8, 2.0, 2.2, 0.1, M.polyGrey, tr, 0, 1.0, 0); for (let i = 0; i < 6; i++) box(0.04, 1.6, 2.0, M.steel, tr, -0.95, 1.0, -0.8 + i * 0.32).rotation.y = 0;
-        pole(root, 27.5, 14, {});
-        [[-28, -17, 1.1, 1], [-28.5, -6, 1, 0], [-28, 8, 1.2, 1], [-27, 17, 1, 0], [-10, 20.2, 0.8, 0], [10, -20.2, 0.9, 1]].forEach(([x, z, s, k]) => tree(root, x, z, s, k));
-        hotspots.push({ key: "module", pos: new THREE.Vector3(-2, 2.6, 0) }, { key: "inverter", pos: new THREE.Vector3(27.2, 3.2, -12) }, { key: "grid", pos: new THREE.Vector3(27.5, 9, 14) });
-        view = { az: 32, el: 32, fov: 28, margin: 1.0 }; shadowSize = 42; break;
+        trayRun(root, [23.6, 0.12, -17.1], [23.6, 0.12, 11.1], 0.3, M.concrete); // 케이블 트렌치 덮개
+        // 울타리 (남쪽에 출입문)
+        const fenceMat = std({ color: 0x3f6f52, roughness: 0.6, metalness: 0.3, transparent: true, opacity: 0.4 });
+        const X0 = -25.5, X1 = 29.8, FZ = 19.6, GX0 = 24.4, GX1 = 28.4;
+        for (let x = X0; x <= X1; x += 3.07) for (const z of [-FZ, FZ]) { if (z > 0 && x > GX0 && x < GX1) continue; cyl(0.04, 0.04, 1.9, M.steel, root, x, 0.95, z, 8); }
+        for (let z = -FZ; z <= FZ; z += 3.27) for (const x of [X0, X1]) cyl(0.04, 0.04, 1.9, M.steel, root, x, 0.95, z, 8);
+        box(X1 - X0, 1.7, 0.02, fenceMat, root, (X0 + X1) / 2, 0.95, -FZ, false); box(GX0 - X0, 1.7, 0.02, fenceMat, root, (X0 + GX0) / 2, 0.95, FZ, false); box(X1 - GX1, 1.7, 0.02, fenceMat, root, (X1 + GX1) / 2, 0.95, FZ, false);
+        box(0.02, 1.7, 2 * FZ, fenceMat, root, X0, 0.95, 0, false); box(0.02, 1.7, 2 * FZ, fenceMat, root, X1, 0.95, 0, false);
+        for (const x of [GX0, GX1]) box(0.14, 2.1, 0.14, M.cabinetDark, root, x, 1.05, FZ);
+        const gate = box(3.9, 1.7, 0.05, std({ color: 0x5d6878, roughness: 0.5, metalness: 0.5, transparent: true, opacity: 0.7 }), root, GX0 + 1.7, 0.95, FZ + 1.0); gate.rotation.y = 0.55;
+        box(1.1, 0.7, 0.03, M.yellow, root, GX0 - 1.2, 1.2, FZ + 0.03); // 경고 표지
+        // 전기실 · 변압기 · 수배전반
+        const sk = group(root, 27.2, 0, -12); rbox(2.6, 2.7, 6.2, 0.1, M.white, sk, 0, 1.45, 0); box(2.8, 0.16, 6.4, M.wallBand, sk, 0, 2.88, 0); box(0.05, 2.0, 0.95, M.cabinetDark, sk, -1.32, 1.1, 1.6); for (let i = 0; i < 3; i++) box(0.04, 0.5, 0.9, M.cabinetDark, sk, -1.32, 2.1, -2.1 + i * 1.2); rbox(0.9, 0.7, 0.5, 0.05, M.white, sk, 0, 3.3, -1.5);
+        transformerAt(root, 27.2, -5.2, -Math.PI / 2);
+        cubicleAt(root, 27.4, 1.2, -Math.PI / 2, 3);
+        trayRun(root, [23.6, 0.12, -5.2], [26, 0.12, -5.2], 0.3, M.concrete);
+        pole(root, 27.2, 9.5, {}); service(27.2, 9.5, [27.4, 2.75, 2.4]);
+        cctvAt(root, -24.6, 18.6, 2.4); cctvAt(root, 28.9, -18.6, -0.8);
+        weatherMast(root, 23.2, 15.2);
+        box(50, 0.12, 0.55, M.concrete, root, -0.5, 0.06, -18.4, false); box(50, 0.06, 0.35, M.cabinetDark, root, -0.5, 0.1, -18.4, false); // 배수로
+        [[-29.5, -18, 1.1, 1], [-30, -6, 1, 0], [-29.5, 8, 1.2, 1], [-29, 18, 1, 0], [-12, 21, 0.7, 0], [8, -21, 0.8, 1]].forEach(([x, z, s, k]) => tree(root, x, z, s, k));
+        worker(root, 22, 2.6, { ry: -1.2, armR: -1.0 });
+        hs("module", -4, 2.6, -3.8);
+        hs("gstruct", -8, 1.0, 15.1, "지상 구조물 · 기초", "땅에 기초를 박고 최적 경사(약 25~30°)로 세웁니다. 앞줄 그림자를 피하도록 줄 간격을 둡니다", "구조");
+        hs("inverter", 20.3, 1.9, 1.8, "스트링 인버터", "줄 끝마다 달아 직류를 교류로 바꿉니다. 교류 전선은 트렌치를 따라 변압기로 모입니다", "DC → AC");
+        hs("transformer", 27.2, 2.6, -5.2, "변압기", "고압(22.9kV)으로 연계할 때 인버터 전압을 올립니다. 소규모 저압 연계는 변압기 없이 연결합니다", "승압");
+        hs("eroom", 27.2, 3.4, -12, "전기실 · 감시", "보호계전기 · 계량기 · 모니터링 · 통신 장비가 들어갑니다");
+        hs("board", 27.4, 2.9, 1.2, "수배전반 (연계 차단기)", "한전 선로와 만나는 곳. 이상이 생기면 발전소를 계통에서 분리합니다", "교류 AC");
+        hs("fence", 2, 1.6, 19.6, "울타리 · CCTV", "감전과 도난을 막기 위해 둘러치고 출입문을 잠급니다. 배수로 · 잡초 관리도 함께 봅니다");
+        hs("grid", 27.2, 9, 9.5);
+        view = { az: 32, el: 32, fov: 28, margin: 1.0 }; shadowSize = 44; break;
       }
       case "agri": {
-        island(root, 50, 36);
-        const field = std({ color: 0x8a6a4c, roughness: 0.95 });
-        const fg = keep(new THREE.ShapeGeometry(rrShape(42, 28, 1), 4)); fg.rotateX(-Math.PI / 2); mesh(fg, field, root, 0, 0.03, 0, false);
-        const crop = std({ color: 0x5ea042, roughness: 0.85 }), crop2 = std({ color: 0x7cba4f, roughness: 0.85 });
-        for (let i = 0; i < 18; i++) { const r = box(40, 0.45, 0.7, i % 2 ? crop : crop2, root, 0, 0.25, -12.8 + i * 1.5); }
-        // 높은 구조물 + 띄엄띄엄 모듈 (빛이 작물에 닿도록)
+        WS = 1.3;
+        island(root, 52, 36);
+        const field = std({ color: 0x7a5d44, roughness: 0.95 });
+        const fg = keep(new THREE.ShapeGeometry(rrShape(42, 28, 1), 4)); fg.rotateX(-Math.PI / 2); mesh(fg, field, root, -1, 0.03, 0, false);
+        const crop = std({ color: 0x4f8a3a, roughness: 0.85 }), crop2 = std({ color: 0x6aa646, roughness: 0.85 });
+        const cropGeo = G("cropRow", () => { const g = new THREE.CapsuleGeometry(0.32, 39.4, 4, 10); g.rotateZ(Math.PI / 2); return g; });
+        for (let i = 0; i < 18; i++) { box(40, 0.22, 0.95, field, root, -1, 0.11, -12.8 + i * 1.5); mesh(cropGeo, i % 2 ? crop : crop2, root, -1, 0.42, -12.8 + i * 1.5).scale.set(1, 1, 1.1); }
         const list = [], tilt = 0.44, H = 3.6;
         for (let r = 0; r < 5; r++) {
           const z = -11 + r * 5.5;
-          for (let c = 0; c < 30; c++) list.push([-17.4 + c * 1.2, H + 0.4, z, tilt, 0]);
-          for (let x = -17.5; x <= 17.5; x += 5) { box(0.14, H + 0.3, 0.14, M.steel, root, x, (H + 0.3) / 2, z); box(0.5, 0.1, 0.5, M.concrete, root, x, 0.05, z, false); }
-          box(36, 0.12, 0.12, M.steel, root, 0, H, z);
+          for (let c = 0; c < 30; c++) list.push([-18.4 + c * 1.2, H + 0.4, z, tilt, 0]);
+          for (let x = -18.5; x <= 16.5; x += 5) { box(0.14, H + 0.3, 0.14, M.steel, root, x, (H + 0.3) / 2, z); box(0.5, 0.25, 0.5, M.concrete, root, x, 0.12, z); const br = box(1.6, 0.08, 0.08, M.steel, root, x + 0.55, H - 0.55, z); br.rotation.z = 0.78; }
+          box(36, 0.12, 0.12, M.steel, root, -1, H, z); box(36, 0.07, 0.07, M.aluDark, root, -1, H + 0.75, z - 0.85); box(36, 0.07, 0.07, M.aluDark, root, -1, H + 0.02, z + 0.85);
+          trayRun(root, [-18.5, H - 0.25, z], [16.5, H - 0.25, z], 0.14);
         }
         moduleArray(root, list); moduleCount += list.length;
-        for (let x = -17.5; x <= 17.5; x += 5) box(0.1, 0.1, 22, M.steel, root, x, H - 0.1, 0);
-        // 트랙터
-        const t = group(root, -4, 0, 5.2); t.rotation.y = Math.PI / 2;
+        for (let x = -18.5; x <= 16.5; x += 5) box(0.1, 0.1, 22, M.steel, root, x, H - 0.1, 0);
+        // 인버터: 동쪽 끝 기둥 (농기계에 닿지 않는 높이)
+        for (const r of [0, 2, 4]) invAt(root, 16.72, 2.2, -11 + r * 5.5, Math.PI / 2, 0.95);
+        trayRun(root, [16.5, 1.2, -11], [16.5, 1.2, 11], 0.14);
+        trayRun(root, [16.6, 0.1, -9], [21.6, 0.1, -9], 0.25, M.concrete);
+        cubicleAt(root, 22.4, -9, -Math.PI / 2, 2);
+        pole(root, 22.8, -14, {}); service(22.8, -14, [22.4, 2.75, -9.4]);
+        const t = group(root, -5, 0, 5.2); t.rotation.y = Math.PI / 2;
         const tp = phys({ color: 0x1f8a4c, roughness: 0.35, metalness: 0.3, clearcoat: 0.6 });
-        rbox(1.4, 0.9, 2.6, 0.12, tp, t, 0, 1.0, 0); rbox(1.2, 1.1, 1.2, 0.1, M.glass, t, 0, 1.95, -0.4);
-        for (const [z, r, w] of [[-0.8, 0.75, 0.4], [1.0, 0.45, 0.3]]) for (const s of [-1, 1]) { const wh = cyl(r, r, w, M.rubber, t, s * 0.85, r, z, 20); wh.rotation.z = Math.PI / 2; }
-        worker(root, 8, 7.8, { ry: 0.6, vest: std({ color: 0x3a6ad1, roughness: 0.7 }), hat: std({ color: 0xf5d37a, roughness: 0.7 }) });
-        tree(root, -23, -14, 1, 0); tree(root, 23, 14, 1, 1); tree(root, 23, -14, 0.9, 0);
-        hotspots.push({ key: "module", pos: new THREE.Vector3(0, H + 1, 0) });
+        rbox(1.4, 0.9, 2.6, 0.12, tp, t, 0, 1.0, 0); rbox(1.2, 1.1, 1.2, 0.1, M.glass, t, 0, 1.95, -0.4); box(1.3, 0.06, 1.3, tp, t, 0, 2.53, -0.4); cyl(0.04, 0.04, 0.7, M.black, t, 0.45, 1.8, 0.9, 8);
+        for (const [z, r, w] of [[-0.8, 0.75, 0.4], [1.0, 0.45, 0.3]]) for (const s of [-1, 1]) { const wh = cyl(r, r, w, M.rubber, t, s * 0.85, r, z, 20); wh.rotation.z = Math.PI / 2; const rim = cyl(r * 0.5, r * 0.5, w + 0.02, M.yellow, t, s * 0.85, r, z, 14); rim.rotation.z = Math.PI / 2; }
+        worker(root, 7, 7.8, { ry: 0.6, vest: std({ color: 0x3a6ad1, roughness: 0.7 }), hat: std({ color: 0xf5d37a, roughness: 0.7 }) });
+        tree(root, -24, -14, 1, 0); tree(root, 23.5, 14, 1, 1); tree(root, -24, 13, 0.9, 0);
+        hs("module", -1, H + 1.1, 0);
+        hs("astruct", -8.5, 2.2, 5.5, "높은 구조물", "농기계가 지나가도록 3m 이상으로 세우고 기둥 간격을 넓힙니다. 그만큼 공사비가 오릅니다", "구조");
+        hs("crop", 6, 0.9, 2.8, "하부 작물", "모듈 사이로 빛이 들어 농사를 계속합니다. 수확량 유지가 허가 조건입니다");
+        hs("inverter", 16.9, 2.6, 0, "인버터 (기둥 부착)", "농기계에 닿지 않는 높이에 답니다. 교류 전선은 땅속으로 밭 가장자리 수배전반까지 갑니다", "DC → AC");
+        hs("board", 22.4, 2.9, -9); hs("grid", 22.8, 9, -14);
         view = { az: 32, el: 26, fov: 28, margin: 1.0 }; shadowSize = 34; break;
       }
       case "floating": {
-        island(root, 54, 40);
-        const water = phys({ color: 0x2f74a8, roughness: 0.06, metalness: 0.0, clearcoat: 1, clearcoatRoughness: 0.02, envMapIntensity: 1.4 });
-        const wg = keep(new THREE.ShapeGeometry(rrShape(46, 32, 6), 24)); wg.rotateX(-Math.PI / 2); mesh(wg, water, root, -1, 0.05, 0, false).receiveShadow = true;
-        const bank = keep(new THREE.ShapeGeometry(rrShape(47.4, 33.4, 6.5), 24)); bank.rotateX(-Math.PI / 2); mesh(bank, std({ color: 0xa69479, roughness: 0.95 }), root, -1, 0.035, 0, false);
+        WS = 1.3;
+        island(root, 58, 40);
+        const water = phys({ color: 0x2b6b98, roughness: 0.08, metalness: 0.0, clearcoat: 1, clearcoatRoughness: 0.03, envMapIntensity: 1.5, normalMap: MX.waterN, normalScale: new THREE.Vector2(0.18, 0.18) });
+        const wg = keep(new THREE.ShapeGeometry(rrShape(46, 32, 6), 24)); wg.rotateX(-Math.PI / 2); mesh(wg, water, root, -3, 0.05, 0, false).receiveShadow = true;
+        const bank = keep(new THREE.ShapeGeometry(rrShape(47.6, 33.6, 6.6), 24)); bank.rotateX(-Math.PI / 2); mesh(bank, std({ color: 0x9c8a70, roughness: 0.95 }), root, -3, 0.035, 0, false);
         const list = [], tilt = 0.21;
-        const blocks = [[-9, -3, 16, 6], [9.5, -3, 14, 6], [0, 7.5, 22, 3]];
+        const blocks = [[-12, -4, 16, 6], [6.5, -4, 14, 6], [-2.5, 9, 22, 3]];
         for (const [bx, bz, cols, rows] of blocks) {
           for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
             const x = bx + (c - (cols - 1) / 2) * 1.2, z = bz + (r - (rows - 1) / 2) * 2.75;
-            list.push([x, 0.55, z, tilt, 0]);
-            box(1.1, 0.28, 2.0, M.white, root, x, 0.2, z + 0.1);
+            list.push([x, 0.58, z, tilt, 0]);
+            rbox(1.1, 0.3, 2.0, 0.08, M.white, root, x, 0.2, z + 0.1);
           }
-          for (let r = 0; r <= rows; r++) box(cols * 1.2, 0.18, 0.45, M.offWhite, root, bx, 0.15, bz + (r - rows / 2) * 2.75 - 0.25);
+          for (let r = 0; r <= rows; r++) rbox(cols * 1.2, 0.2, 0.5, 0.06, M.offWhite, root, bx, 0.15, bz + (r - rows / 2) * 2.75 - 0.25);
         }
         moduleArray(root, list); moduleCount += list.length;
-        for (const [a, b] of [[[-18, 0.2, -12], [-23, 0.4, -16]], [[19, 0.2, -12], [23, 0.4, -16]], [[-18, 0.2, 6], [-23, 0.4, 12]], [[19, 0.2, 6], [23, 0.4, 12]]]) { wire(a, b, -0.05, 0.03, M.yellow, root); cyl(0.12, 0.12, 1.2, M.wood, root, b[0], 0.6, b[2], 10); }
-        const hut = group(root, 24.5, 0, 0); rbox(3, 2.6, 4, 0.1, M.white, hut, 0, 1.3, 0); box(3.2, 0.2, 4.2, M.wallBand, hut, 0, 2.7, 0);
-        wire([12.5, 0.5, 0.5], [23, 1.2, 0], 0.2, 0.04, M.cableBlack, root);
-        [[-25, -17, 1, 1], [-25.5, 15, 1.1, 0], [10, -18.6, 0.9, 0], [-8, 18.6, 1, 1], [25, 15, 1, 0]].forEach(([x, z, s, k]) => tree(root, x, z, s, k));
-        const boat = group(root, -14, 0.12, 11.5); rbox(1.2, 0.35, 3, 0.15, phys({ color: 0xff7a1a, roughness: 0.4, clearcoat: 0.5 }), boat, 0, 0.1, 0); boat.rotation.y = 0.5;
-        hotspots.push({ key: "module", pos: new THREE.Vector3(-9, 1.2, -3) });
-        view = { az: 30, el: 30, fov: 28, margin: 1.0 }; shadowSize = 36; break;
+        // 점검 통로 + 수상 접속반
+        rbox(34, 0.22, 1.0, 0.06, M.offWhite, root, -2.6, 0.16, 5.4); rbox(1.0, 0.22, 17, 0.06, M.offWhite, root, -2.75, 0.16, -3.6);
+        for (let x = -19; x <= 14; x += 1.5) cyl(0.02, 0.02, 0.9, M.yellow, root, x, 0.7, 5.85, 6); box(34, 0.03, 0.03, M.yellow, root, -2.6, 1.15, 5.85);
+        for (const x of [-12, -2.75, 6.5]) { rbox(0.7, 0.9, 0.35, 0.04, M.cabinet, root, x, 0.75, 5.2); box(0.04, 0.5, 0.04, M.steel, root, x, 0.4, 5.2); }
+        // 계류 줄 · 앵커
+        for (const [a, b] of [[[-21.6, 0.2, -12], [-25.6, 0.5, -15.6]], [[14.9, 0.2, -12], [19.4, 0.5, -15.6]], [[-21.6, 0.2, 4], [-25.8, 0.5, 9]], [[14.9, 0.2, 4], [19.6, 0.5, 9]], [[-15.7, 0.2, 12.9], [-18, 0.5, 15.6]], [[10.7, 0.2, 12.9], [13, 0.5, 15.6]]]) { wire(a, b, 0.25, 0.03, M.yellow, root); cyl(0.14, 0.16, 0.9, M.concrete, root, b[0], 0.45, b[2], 10); }
+        // 수상 케이블 (부표) → 육상 전기실
+        const cab = [[14.4, 0.3, 5.4], [16.5, 0.16, 4.6], [18.6, 0.16, 3.4], [20.3, 0.3, 2.2], [22.4, 0.5, 1.4]];
+        tube(cab, 0.05, M.cableBlack, root, 32); for (const p of cab.slice(1, 4)) sph(0.2, M.orange, root, p[0], 0.2, p[2]);
+        // 육상 전기실 (인버터 · 변압기 · 수배전반)
+        const hut = group(root, 24.6, 0, 0); box(3.6, 0.2, 5.4, M.concrete, hut, 0, 0.1, 0, false); rbox(3, 2.7, 4.6, 0.1, M.white, hut, 0, 1.55, 0); box(3.2, 0.2, 4.8, M.wallBand, hut, 0, 2.98, 0); box(0.06, 2.0, 0.95, M.cabinetDark, hut, -1.52, 1.2, 1.2); for (let i = 0; i < 2; i++) box(0.05, 0.5, 0.9, M.cabinetDark, hut, -1.52, 2.2, -1.6 + i * 1.2);
+        for (let i = 0; i < 3; i++) invAt(hut, -1.56, 1.5, -1.9 + i * 1.0, -Math.PI / 2, 0.8);
+        transformerAt(root, 24.8, 6.2, -Math.PI / 2);
+        cubicleAt(root, 24.8, -5.6, -Math.PI / 2, 2);
+        pole(root, 25.2, -10.5, {}); service(25.2, -10.5, [24.8, 2.75, -6.2]);
+        [[-27, -17, 1, 1], [-27.5, 15, 1.1, 0], [8, -18.8, 0.9, 0], [-10, 18.8, 1, 1], [26.5, 15, 1, 0]].forEach(([x, z, s, k]) => tree(root, x, z, s, k));
+        const boat = group(root, -17, 0.12, 9.5); rbox(1.2, 0.35, 3, 0.15, phys({ color: 0xff7a1a, roughness: 0.4, clearcoat: 0.5 }), boat, 0, 0.1, 0); boat.rotation.y = 0.5;
+        worker(root, 4, 5.4, { y: 0.27, ry: 0.4 });
+        hs("module", -12, 1.3, -4);
+        hs("float", 6.5, 0.6, -11.6, "부력체", "물에 뜨는 플라스틱 구조물 위에 모듈을 얹습니다. 재질 인증과 내구성을 확인합니다", "구조");
+        hs("mooring", -24, 0.7, -14.2, "계류 (고정 줄 · 앵커)", "수위가 바뀌거나 태풍이 와도 떠내려가지 않게 잡아 줍니다");
+        hs("walk", -2.6, 1.3, 5.4, "점검 통로 · 접속반", "사람이 걸어 들어가 점검하는 길. 줄마다 전선을 모으는 접속반이 달려 있습니다");
+        hs("wcable", 18.6, 0.6, 3.4, "수상 케이블", "부표에 띄워 육상 전기실까지 잇습니다. 물과 닿는 구간은 방수 · 내후 규격을 씁니다");
+        hs("inverter", 22.9, 2.2, -0.9, "육상 전기실 (인버터)", "인버터 · 변압기 · 수배전반은 물가 땅에 둡니다", "DC → AC");
+        hs("grid", 25.2, 9, -10.5);
+        view = { az: 30, el: 30, fov: 28, margin: 1.0 }; shadowSize = 38; break;
       }
       case "wall": {
-        island(root, 26, 20, { th: 0.9, yard: [22, 5, 0, 6.5], lines: 7 });
-        const b = group(root, 0, 0, -2);
+        WS = 1.2;
+        island(root, 30, 21, { th: 0.9, yard: [26, 5.4, 0, 7] });
+        for (let i = 0; i < 8; i++) box(0.12, 0.01, 4.6, M.line, root, -10.5 + i * 2.6, 0.06, 7, false);
+        const b = group(root, -1.5, 0, -2);
         const W = 18, D = 10, H = 12;
         const wt = wallTex.clone(); wt.needsUpdate = true; wt.repeat.set(1, 3.5); keep(wt);
         box(W, H, D, std({ map: wt, roughness: 0.6 }), b, 0, H / 2, 0);
         box(W + 0.3, 0.5, D + 0.3, M.wallBand, b, 0, H + 0.25, 0);
         const list = [];
-        for (let r = 0; r < 3; r++) for (let c = 0; c < 13; c++) list.push([-7 + c * 1.16, 5.0 + r * 2.5, D / 2 + 0.35, Math.PI / 2 - 0.15, 0]);
+        for (let r = 0; r < 3; r++) for (let c = 0; c < 13; c++) list.push([-7 + c * 1.16, 5.0 + r * 2.5, D / 2 + 0.36, Math.PI / 2 - 0.15, 0]);
         moduleArray(b, list); moduleCount += list.length;
-        for (let r = 0; r < 3; r++) box(W - 2.4, 0.08, 0.3, M.aluDark, b, 0, 4.0 + r * 2.5, D / 2 + 0.15);
-        for (let c = 0; c < 5; c++) box(2.2, 1.5, 0.08, M.glass, b, -6.6 + c * 3.3, 1.9, D / 2 + 0.05);
+        for (let r = 0; r < 3; r++) { box(W - 2.4, 0.08, 0.34, M.aluDark, b, 0, 3.86 + r * 2.5, D / 2 + 0.17); box(W - 2.4, 0.06, 0.1, M.aluDark, b, 0, 6.1 + r * 2.5, D / 2 + 0.06); for (let c = 0; c < 7; c++) box(0.08, 0.3, 0.34, M.steel, b, -7.4 + c * 2.45, 3.75 + r * 2.5, D / 2 + 0.17); }
+        for (let c = 0; c < 5; c++) { box(2.2, 1.5, 0.08, M.glass, b, -6.6 + c * 3.3, 1.9, D / 2 + 0.05); box(2.3, 0.07, 0.12, M.alu, b, -6.6 + c * 3.3, 1.12, D / 2 + 0.06); }
         box(1.6, 2.4, 0.1, M.cabinetDark, b, 7.4, 1.2, D / 2 + 0.06);
-        for (let c = 0; c < 2; c++) box(0.08, 1.5, 2.6, M.glass, b, W / 2 + 0.05, 2 + c * 4, -1);
-        tree(root, -11, 4, 0.7, 1); tree(root, 11.2, 4, 0.75, 0); tree(root, -11, -7, 0.8, 0);
-        car(root, -6, 6.5, 0, 0xf2f4f7); car(root, 3, 6.5, 0, 0x2b3a55);
-        hotspots.push({ key: "module", pos: new THREE.Vector3(0, 7.5, 3.6) });
-        view = { az: 26, el: 16, fov: 28, margin: 1.0 }; shadowSize = 22; break;
+        for (let c = 0; c < 2; c++) box(0.08, 1.5, 2.6, M.glass, b, W / 2 + 0.05, 6 + c * 3.2, -1);
+        // 수직 트레이 → 인버터 (동쪽 벽 1층) → 수배전반
+        box(0.22, 2.6, 0.1, M.steel, b, W / 2 - 0.5, 2.6, D / 2 + 0.06); box(0.6, 0.1, 0.22, M.steel, b, W / 2 - 0.2, 1.3, D / 2 + 0.1);
+        box(0.1, 0.22, 3.4, M.steel, b, W / 2 + 0.06, 2.7, D / 2 - 1.6);
+        for (let i = 0; i < 2; i++) invAt(b, W / 2 + 0.16, 1.6, D / 2 - 1.6 - i * 1.3, Math.PI / 2, 1.0);
+        box(0.9, 0.12, 3.4, M.concrete, b, W / 2 + 0.5, 0.06, D / 2 - 2.2, false);
+        cubicleAt(root, 11.4, -1.2, Math.PI / 2, 1);
+        pole(root, 12.6, 3.2, {}); service(12.6, 3.2, [11.4, 2.75, -0.9]);
+        tree(root, -13, 3.4, 0.7, 1); tree(root, -13, -7, 0.8, 0); tree(root, 12.6, -8, 0.7, 1);
+        car(root, -7.9, 7, 0, 0xf2f4f7); car(root, -0.1, 7, 0, 0x2b3a55); car(root, 5.1, 7, 0, 0x8a96a8);
+        hs("module", -1.5, 7.6, 3.5);
+        hs("bracket", -9, 3.9, 3.3, "브래킷 · 앵커", "모듈을 벽에 고정하는 철물. 바람 하중과 외장재 화재 기준을 구조검토로 확인합니다", "구조");
+        hs("inverter", 8.0, 2.0, 0.8, "인버터", "벽면 모듈의 직류를 교류로 바꿉니다. 그늘이 자주 지는 벽은 줄(스트링)을 나눠 묶습니다", "DC → AC");
+        hs("board", 11.4, 2.9, -1.2); hs("grid", 12.6, 9, 3.2);
+        view = { az: 26, el: 16, fov: 28, margin: 1.0 }; shadowSize = 24; break;
       }
       default: {
         if (S.startsWith("doc")) {
@@ -791,6 +971,13 @@
     sun.shadow.bias = -0.0004; sun.shadow.normalBias = shadowSize > 20 ? 0.06 : 0.02; sun.shadow.radius = 4;
     scene.add(sun); scene.add(sun.target);
     const fill = new THREE.DirectionalLight(0xc8dcff, 0.6); fill.position.set(-30, 20, 40); scene.add(fill);
+    // 누적 렌더용 하늘빛: 방향을 바꿔 가며 여러 번 그려 평균하면 부드러운 그림자와 틈새 음영(AO)이 생긴다
+    const skyL = new THREE.DirectionalLight(0xd4e2ff, 0); skyL.castShadow = !!opt.accum; skyL.shadow.mapSize.set(2048, 2048);
+    const sc3 = skyL.shadow.camera; sc3.left = -shadowSize; sc3.right = shadowSize; sc3.top = shadowSize; sc3.bottom = -shadowSize; sc3.near = 1; sc3.far = shadowSize * 6;
+    skyL.shadow.bias = -0.0006; skyL.shadow.normalBias = shadowSize > 20 ? 0.09 : 0.03;
+    if (studioMode) skyL.castShadow = false; // 바닥 그림자 받이에 넓은 얼룩이 생기지 않게
+    scene.add(skyL); scene.add(skyL.target);
+    const envK = opt.accum ? 0.5 : 1;
 
     // 하늘 환경맵 (반사용)
     function envScene() {
@@ -799,11 +986,12 @@
         side: THREE.BackSide, depthWrite: false,
         uniforms: { top: { value: new THREE.Color(0x5b8fe0) }, mid: { value: new THREE.Color(0xdfeaf8) }, bot: { value: new THREE.Color(0x77736b) } },
         vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
-        fragmentShader: "uniform vec3 top; uniform vec3 mid; uniform vec3 bot; varying vec3 vP; void main(){ float h=vP.y; vec3 c = h>0.0 ? mix(mid, top, pow(h,0.55)) : mix(mid, bot, pow(-h,0.35)); gl_FragColor=vec4(c*1.15,1.0); }",
+        fragmentShader: "uniform vec3 top; uniform vec3 mid; uniform vec3 bot; varying vec3 vP; void main(){ float h=vP.y; vec3 c = h>0.0 ? mix(mid, top, pow(h,0.55)) : mix(mid, bot, pow(-h,0.35)); gl_FragColor=vec4(c*" + (1.15 * envK).toFixed(3) + ",1.0); }",
       }));
       es.add(sky);
       const sunD = new THREE.Mesh(new THREE.SphereGeometry(6, 16, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(1, 0.95, 0.85).multiplyScalar(30) }));
       sunD.position.set(40, 55, 50); es.add(sunD);
+      for (const [cx, cy, cz, sx] of [[-30, 60, -60, 26], [50, 45, -40, 20], [-70, 35, 30, 22], [10, 70, 60, 18], [70, 30, 40, 16]]) { const cl = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(2.2, 2.2, 2.3).multiplyScalar(envK) })); cl.position.set(cx, cy, cz); cl.scale.set(sx, sx * 0.3, sx * 0.6); es.add(cl); }
       const box1 = new THREE.Mesh(new THREE.PlaneGeometry(60, 20), new THREE.MeshBasicMaterial({ color: new THREE.Color(3, 3, 3.2), side: THREE.DoubleSide })); box1.position.set(-60, 40, 20); box1.lookAt(0, 0, 0); es.add(box1);
       return es;
     }
@@ -834,12 +1022,23 @@
       return Math.max(0, Math.sin(el)) * Math.max(0, Math.sin(t * Math.PI));
     }
     setSun(opt.hour != null ? opt.hour : 9.4);
-    function orbit(az, el, aspect, dist) {
+    const sunBase = sun.position.clone(), sunI = sun.intensity;
+    const radInv = (i) => { let r = 0, f = 0.5; while (i > 0) { if (i & 1) r += f; i >>= 1; f *= 0.5; } return r; };
+    function sample(k, n) {
+      const d = radius * 2.2, u = (k + 0.5) / n, v = radInv(k + 1), r = Math.sqrt(u), ph = 2 * Math.PI * v;
+      skyL.position.set(center.x + r * Math.cos(ph) * d, center.y + Math.max(studioMode ? 0.6 : 0.12, Math.sqrt(1 - u)) * d, center.z + r * Math.sin(ph) * d);
+      skyL.target.position.copy(center); skyL.target.updateMatrixWorld(); skyL.intensity = 1.5;
+      const j = radius * 2.2 * 0.035, a2 = 2 * Math.PI * radInv(k + 7), r2 = Math.sqrt((k + 0.5) / n);
+      sun.position.copy(sunBase).add(new THREE.Vector3(Math.cos(a2) * r2 * j, 0, Math.sin(a2) * r2 * j)); sun.intensity = sunI * 0.95;
+      hemi.intensity = 0.16; fill.intensity = 0;
+    }
+    function orbit(az, el, aspect, dist, target) {
+      const tg = target || center;
       camera.aspect = aspect || 1; camera.fov = view.fov;
       const a = az * Math.PI / 180, e = el * Math.PI / 180;
       const vfov = view.fov * Math.PI / 180, hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
       const dir = new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), Math.cos(a) * Math.cos(e));
-      const place = (d) => { camera.position.copy(center).addScaledVector(dir, d); camera.lookAt(center); camera.near = Math.max(0.05, d - radius * 2); camera.far = d + radius * 4; camera.updateProjectionMatrix(); camera.updateMatrixWorld(); };
+      const place = (d) => { camera.position.copy(tg).addScaledVector(dir, d); camera.lookAt(tg); camera.near = Math.max(0.25, d - radius * 2.4); camera.far = d + radius * 4; camera.updateProjectionMatrix(); camera.updateMatrixWorld(); };
       let d = dist;
       if (!d) {
         const pts = []; for (const x of [bbox.min.x, bbox.max.x]) for (const y of [bbox.min.y, bbox.max.y]) for (const z of [bbox.min.z, bbox.max.z]) pts.push(new THREE.Vector3(x, y, z));
@@ -851,13 +1050,15 @@
       return d;
     }
     function fit(aspect) { return orbit(view.az, view.el, aspect); }
+    const ray = new THREE.Raycaster();
+    function pick(nx, ny) { ray.setFromCamera(new THREE.Vector2(nx, ny), camera); const hit = ray.intersectObject(root, true)[0]; return hit ? hit.point.clone() : null; }
 
     function dispose() {
       disposables.forEach((x) => x.dispose && x.dispose());
       if (envRT) envRT.dispose();
       scene.traverse((o) => { if (o.isInstancedMesh) o.dispose && o.dispose(); });
     }
-    return { scene, camera, fit, orbit, view, center, radius, setSun, setupEnv, hotspots, dispose, modules: moduleCount };
+    return { scene, camera, fit, orbit, pick, sample, view, center, radius, setSun, setupEnv, hotspots, dispose, modules: moduleCount };
   }
 
   window.SOLAR3D = { create };

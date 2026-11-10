@@ -1591,3 +1591,36 @@ figure.fig img { border-radius: 16px; box-shadow: var(--shadow); }
 }
 .mc-table { min-width: 760px; }
 .mc-axis span { white-space: nowrap; }
+
+/* ===================== 3D 확대 · 크게 보기 ===================== */
+.h3-zoom { position: absolute; right: 12px; bottom: 12px; display: grid; gap: 6px; z-index: 3; }
+.h3:not(.on3d) .h3-zoom { display: none; }
+.h3-zoom button { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; cursor: pointer; color: #fff; background: rgba(8, 14, 30, .72); border: 1px solid rgba(255, 255, 255, .18); backdrop-filter: blur(10px); transition: background .2s, transform .2s; }
+.h3-zoom button:hover { background: #ffbe3d; color: #10203f; transform: scale(1.06); }
+.h3 .h3-hint { right: auto; left: 14px; }
+.h3-tip { right: 62px; }
+.h3.zoomed .h3-dot span { opacity: 1; transform: none; }
+.full3d { position: fixed !important; inset: 0; z-index: 400; margin: 0 !important; padding: 14px; background: radial-gradient(60% 55% at 50% 45%, #16254a, #060b19 80%); box-sizing: border-box; }
+.h3-col.full3d { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 10px; }
+.h3-col.full3d .h3 { aspect-ratio: auto; height: 100%; min-height: 0; touch-action: none; }
+.h3-col.full3d .hero-panel { display: none; }
+.h3-col.full3d .h3-sw button, .h3-col.full3d .h3-sun { max-width: none; }
+.h3.full3d, .h3-col.full3d .h3 { touch-action: none; }
+.md3.full3d { border-radius: 0; padding: 0; }
+html.full3d-on { overflow: hidden; }
+/* 설치 방식 카드 안의 3D */
+.md3 { position: absolute; inset: 0; aspect-ratio: auto; border-radius: 0; border: 0; box-shadow: none; background: none; pointer-events: none; }
+.md-pic.is3d .md3 { pointer-events: auto; }
+.md-pic.is3d #md-img { opacity: 0; }
+.md-pic.is3d .md-3d { display: none; }
+.md-pic .md-badges { z-index: 2; pointer-events: none; right: 62px; }
+.md-3d { position: absolute; left: 16px; top: 16px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; border-radius: 99px; background: color-mix(in srgb, var(--paper) 86%, transparent); backdrop-filter: blur(10px); font-weight: 800; }
+.md-3d:hover { border-color: var(--sun); }
+.md3 .h3-hint { top: 14px; }
+.md-body.swap { animation: mdin .45s cubic-bezier(.2, .7, .2, 1); }
+.md-parts { display: grid; gap: 8px; }
+.md-parts > b { font-size: 13px; color: var(--ink-3); }
+.md-parts > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.md-parts span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 650; padding: 5px 10px 5px 5px; border-radius: 99px; background: var(--cell-soft); color: var(--ink); }
+.md-parts i { font-style: normal; width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 850; background: var(--cell); color: #fff; }
+@media (max-width: 640px) { .h3-zoom button { width: 34px; height: 34px; } .h3 .h3-hint { font-size: 11px; max-width: 70%; } .md-pic .md-badges { right: 54px; } }

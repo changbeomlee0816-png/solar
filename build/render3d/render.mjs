@@ -27,7 +27,7 @@ const SHOTS = [
   ["doc-contract", 960, 720, { doc: ["전력 공급 계약서", "계약"] }],
 ];
 const only = process.argv.slice(2);
-const SS = 1.6; // 슈퍼샘플링 배율
+const SS = 1.5; // 슈퍼샘플링 배율
 
 const PAGE = `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#0000">
 <script type="importmap">{"imports":{"three":"http://r3d.local/three/build/three.module.js"}}</script>
@@ -43,12 +43,20 @@ window.renderShot = async (name, w, h, ss, extra) => {
   renderer.setPixelRatio(1); renderer.setSize(W, H, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap; renderer.setClearColor(0x000000, 0);
-  const s = window.SOLAR3D.create(THREE, { shot, ...(extra || {}) });
+  const s = window.SOLAR3D.create(THREE, { shot, accum: true, ...(extra || {}) });
   s.setupEnv(renderer); s.fit(W / H);
-  renderer.render(s.scene, s.camera);
-  // 투명 여백 잘라내고 목표 비율로 가운데 맞춤
-  const src = document.createElement("canvas"); src.width = W; src.height = H; src.getContext("2d").drawImage(renderer.domElement, 0, 0);
-  const px = src.getContext("2d").getImageData(0, 0, W, H).data;
+  // 해 · 하늘빛 방향을 바꿔 가며 N번 그려 평균 (부드러운 그림자 + 틈새 음영)
+  const N = window.SAMPLES || 20, acc = new Float32Array(W * H * 4);
+  const src = document.createElement("canvas"); src.width = W; src.height = H; const sg = src.getContext("2d", { willReadFrequently: true });
+  const gl = renderer.getContext(), d = new Uint8Array(W * H * 4);
+  for (let k = 0; k < N; k++) {
+    s.sample(k, N); renderer.render(s.scene, s.camera);
+    gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, d); // 미리 곱한 알파 값 그대로
+    for (let i = 0; i < d.length; i++) acc[i] += d[i];
+  }
+  const fin = sg.createImageData(W, H), px = fin.data;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const si = ((H - 1 - y) * W + x) * 4, i = (y * W + x) * 4, a = acc[si + 3] / N; if (a < 2) continue; const k = 255 / acc[si + 3]; px[i] = acc[si] * k; px[i + 1] = acc[si + 1] * k; px[i + 2] = acc[si + 2] * k; px[i + 3] = a; }
+  sg.putImageData(fin, 0, 0);
   let x0 = W, y0 = H, x1 = 0, y1 = 0;
   for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) if (px[(y * W + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   const pad = (extra && extra.pad) || 0.05;
@@ -80,6 +88,7 @@ await page.route("http://r3d.local/**", async (route) => {
 });
 await page.goto("http://r3d.local/");
 await page.waitForFunction(() => window.ready === true, null, { timeout: 60000 });
+if (process.env.SAMPLES) await page.evaluate((n) => { window.SAMPLES = n; }, +process.env.SAMPLES);
 fs.mkdirSync(OUT, { recursive: true });
 for (const [name, w, h, extra] of SHOTS) {
   if (only.length && !only.includes(name)) continue;

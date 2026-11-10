@@ -633,9 +633,6 @@
       <div class="h3-col">
         <div class="h3" id="h3" aria-label="공장 지붕 태양광 3D 모델">
           <img class="h3-poster" src="3d/hero.webp" alt="공장 지붕 태양광 3D 모델" decoding="async">
-          <div class="h3-dots" id="h3-dots"></div>
-          <div class="h3-tip" id="h3-tip" hidden></div>
-          <span class="h3-hint" id="h3-hint">${icon("pointer", 14)} 끌어서 돌려 보기 · 점을 누르면 설명</span>
         </div>
         <div class="h3-sw" id="h3-sw" role="group" aria-label="설치 방식 3D 보기">${[["hero", "hero", "공장 지붕"], ["flatroof", "flatroof", "옥상"], ["carport", "carport", "주차장"], ["ground", "ground", "지상"], ["agri", "agri", "영농형"], ["floating", "floating", "수상"], ["wall", "wall", "벽면"]].map(([s, im, n], i) => `<button type="button" data-shot="${s}" data-img="${im}" aria-pressed="${i === 0}">${n}</button>`).join("")}</div>
         <div class="h3-sun glass" id="h3-sun">
@@ -678,7 +675,7 @@
       <div class="sec-head"><div><div class="eyebrow">설치 방식 · 어디에 짓나요</div><h2>지붕만 있는 게 아닙니다</h2>
       <p>같은 태양광이라도 어디에 짓느냐에 따라 공사비 · 발전량 · 인허가 · 확인할 것이 달라집니다. 방식을 고르면 3D 모델과 함께 차이를 보여줍니다.</p></div></div>
       <div class="md-tabs" id="md-tabs" role="tablist">${METHODS.map((m, i) => `<button type="button" role="tab" class="md-tab" data-i="${i}" aria-selected="${i === 0}"><span class="md-th"><img src="3d/${m.img}.webp" alt="" loading="lazy"></span><b>${esc(m.short)}</b><small>${m.cost[0]}~${m.cost[1]}만/kW</small></button>`).join("")}</div>
-      <div class="card md" id="md">${methodDetail(0)}</div>
+      <div class="card md" id="md"><div class="md-pic" id="md-pic"><img class="r3d" id="md-img" src="3d/${METHODS[0].img}.webp" alt="${esc(METHODS[0].name)} 3D 모델" decoding="async"><div class="h3 md3" id="md3"></div><button type="button" class="btn md-3d" id="md-3d">${icon("pointer", 15)} 3D로 돌려 보기 · 확대</button><div class="md-badges" id="md-badges">${methodBadges(0)}</div></div><div class="md-body" id="md-body">${methodBody(0)}</div></div>
       <div class="card md-cmp"><h3>한눈에 비교</h3>${methodCompare()}</div>
     </section>
     ${stepsT ? `<section class="sec reveal" id="steps">
@@ -853,11 +850,15 @@
 
     // 설치 방식
     {
-      const tabs = $("#md-tabs", root), det = $("#md", root);
-      const pick = (i) => { $$(".md-tab", tabs).forEach((b) => b.setAttribute("aria-selected", +b.dataset.i === i)); det.innerHTML = methodDetail(i); det.classList.remove("swap"); void det.offsetWidth; det.classList.add("swap"); };
+      const tabs = $("#md-tabs", root), det = $("#md", root), body = $("#md-body", root), pic = $("#md-pic", root), b3 = $("#md-3d", root);
+      let cur = 0, mv = null;
+      const pick = (i) => { cur = i; const m = METHODS[i]; $$(".md-tab", tabs).forEach((b) => b.setAttribute("aria-selected", +b.dataset.i === i));
+        const im = $("#md-img", root); im.src = `3d/${m.img}.webp`; im.alt = `${m.name} 3D 모델`; $("#md-badges", root).innerHTML = methodBadges(i); body.innerHTML = methodBody(i);
+        body.classList.remove("swap"); void body.offsetWidth; body.classList.add("swap"); if (mv) mv.load(m.img); };
       tabs.addEventListener("click", (e) => { const b = e.target.closest(".md-tab"); if (b) pick(+b.dataset.i); });
       $(".md-cmp", root).addEventListener("click", (e) => { const r = e.target.closest(".mc-row"); if (r) { pick(+r.dataset.i); $("#methods", root).scrollIntoView({ behavior: "smooth", block: "start" }); } });
       det.addEventListener("click", (e) => { const b = e.target.closest(".md-go"); if (b) { const sb = $(`#s-meth button[data-m="${b.dataset.m}"]`, root); if (sb) sb.click(); $("#calc", root).scrollIntoView({ behavior: "smooth", block: "start" }); } });
+      b3.addEventListener("click", async () => { b3.disabled = true; b3.textContent = "3D 불러오는 중…"; mv = await viewer3d({ stage: $("#md3", root), shot: METHODS[cur].img }); if (mv) { pic.classList.add("is3d"); if (METHODS[cur].img !== "hero") mv.load(METHODS[cur].img); } else { b3.textContent = "3D를 불러오지 못했습니다"; } });
     }
     hero3d(root);
     // 수익 시뮬레이터
@@ -1022,45 +1023,82 @@
   /* ---------- 홈 실시간 3D (three.js, CDN) ---------- */
   const THREE_URL = "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
   let threeP = null;
-  async function hero3d(root) {
-    const st = $("#h3", root); if (!st || !window.SOLAR3D) return;
-    const hr = $("#h3-hr", root), tEl = $("#h3-time", root), outEl = $("#h3-out", root), dots = $("#h3-dots", root), tip = $("#h3-tip", root), sw = $("#h3-sw", root), poster = $(".h3-poster", st);
+  const Z_IC = {
+    in: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    out: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+    reset: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/></svg>',
+    full: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+    close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  };
+  /* 3D 보기: 끌어서 회전, 휠 · 두 손가락 · 버튼으로 확대, 더블클릭한 곳으로 이동, 크게 보기 */
+  async function viewer3d(cfg) {
+    const st = cfg.stage; if (!st || !window.SOLAR3D) return null;
+    const hr = cfg.hr, tEl = cfg.tEl, outEl = cfg.outEl, sw = cfg.sw, poster = $(".h3-poster", st), fullEl = cfg.fullEl || st;
     const hhmm = (h) => { const H = Math.floor(h), m = Math.round((h - H) * 60 / 5) * 5; const hh = m === 60 ? H + 1 : H, mm = m === 60 ? 0 : m; return `${hh < 12 ? "오전" : "오후"} ${((hh + 11) % 12) + 1}:${String(mm).padStart(2, "0")}`; };
     let THREE;
-    try { threeP = threeP || import(THREE_URL); THREE = await threeP; } catch (e) { threeP = null; st.classList.add("still"); return; }
-    if (!st.isConnected) return;
+    try { threeP = threeP || import(THREE_URL); THREE = await threeP; } catch (e) { threeP = null; st.classList.add("still"); return null; }
+    if (!st.isConnected) return null;
     let renderer;
     const canvas = document.createElement("canvas"); canvas.className = "h3-cv";
-    try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" }); } catch (e) { st.classList.add("still"); return; }
+    try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" }); } catch (e) { st.classList.add("still"); return null; }
     const small = matchMedia("(max-width: 760px)").matches;
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, small ? 1.5 : 1.75));
     renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.setClearColor(0x000000, 0);
-    st.insertBefore(canvas, dots);
-    let S3 = null, HS = [], base = { az: 30, el: 28 }, az = 30, el = 28, aspect = 1, dist = 1, dragging = false, lastX = 0, lastY = 0, idle = 0, visible = true, raf = 0, dirty = true;
-    const v = new THREE.Vector3();
-    const size = () => { const r = st.getBoundingClientRect(); aspect = r.width / Math.max(1, r.height); renderer.setSize(r.width, r.height, false); if (S3) { dist = S3.orbit(base.az, base.el, aspect) * 0.86; S3.orbit(az, el, aspect, dist); } dirty = true; };
-    const sun = () => { if (!S3) return; const h = +hr.value, f = S3.setSun(h), kwp = (S3.modules || 0) * 0.645; tEl.textContent = hhmm(h); outEl.innerHTML = `발전 <b>${Math.round(f * 100)}%</b>${kwp ? ` · 약 ${fmt(kwp * f * 0.86, 0)}kW <small>(${fmt(kwp, 0)}kWp)</small>` : ""}`; dirty = true; };
-    const showTip = (i) => { const h = HS[i]; if (!h) { tip.hidden = true; return; } tip.hidden = false; tip.innerHTML = `<b>${esc(EQ[h.key].t)}</b><span>${esc(EQ[h.key].s)}</span>${EQ[h.key].tag ? `<em>${esc(EQ[h.key].tag)}</em>` : ""}`; $$(".h3-dot", dots).forEach((d) => d.classList.toggle("on", +d.dataset.i === i)); };
+    const dots = document.createElement("div"); dots.className = "h3-dots";
+    const tip = document.createElement("div"); tip.className = "h3-tip"; tip.hidden = true;
+    const hint = document.createElement("span"); hint.className = "h3-hint"; hint.innerHTML = `${icon("pointer", 14)} 끌어서 회전 · 휠로 확대 · 더블클릭한 곳으로 이동`;
+    const zb = document.createElement("div"); zb.className = "h3-zoom";
+    zb.innerHTML = `<button type="button" data-z="in" aria-label="확대" title="확대">${Z_IC.in}</button><button type="button" data-z="out" aria-label="축소" title="축소">${Z_IC.out}</button><button type="button" data-z="reset" aria-label="전체 보기" title="전체 보기">${Z_IC.reset}</button><button type="button" data-z="full" aria-label="크게 보기" title="크게 보기">${Z_IC.full}</button>`;
+    st.append(canvas, dots, tip, hint, zb);
+    let S3 = null, HS = [], base = { az: 30, el: 28 }, az = 30, el = 28, aspect = 1, dist = 1, idle = 0, visible = true, raf = 0, dirty = true, armed = false, ph = null;
+    let zoom = 1, zoomGoal = 1; const ZMIN = 0.7, ZMAX = 9;
+    const tgt = new THREE.Vector3(), tgtGoal = new THREE.Vector3(), v = new THREE.Vector3();
+    const clampZ = (z) => Math.max(ZMIN, Math.min(ZMAX, z));
+    const info = (h) => ({ ...(EQ[h.key] || {}), ...(h.t ? { t: h.t, s: h.s, tag: h.tag } : {}) });
+    const size = () => { const r = st.getBoundingClientRect(); if (!r.width || !r.height) return; aspect = r.width / r.height; renderer.setSize(r.width, r.height, false); if (S3) dist = S3.orbit(base.az, base.el, aspect) * 0.86; dirty = true; };
+    const sun = () => { if (!S3) return; const h = hr ? +hr.value : 10.5, f = S3.setSun(h), kwp = (S3.modules || 0) * 0.645; if (tEl) tEl.textContent = hhmm(h); if (outEl) outEl.innerHTML = `발전 <b>${Math.round(f * 100)}%</b>${kwp ? ` · 약 ${fmt(kwp * f * 0.86, 0)}kW <small>(${fmt(kwp, 0)}kWp)</small>` : ""}`; dirty = true; };
+    const showTip = (i) => { const h = HS[i]; if (!h) { tip.hidden = true; return; } const e = info(h); tip.hidden = false; tip.innerHTML = `<b>${esc(e.t)}</b><span>${esc(e.s || "")}</span>${e.tag ? `<em>${esc(e.tag)}</em>` : ""}`; $$(".h3-dot", dots).forEach((d) => d.classList.toggle("on", +d.dataset.i === i)); };
+    const home = () => { if (!S3) return; tgtGoal.copy(S3.center); zoomGoal = 1; az = ((az - base.az + 540) % 360) - 180 + base.az; idle = 0; tip.hidden = true; $$(".h3-dot", dots).forEach((d) => d.classList.remove("on")); };
     const load = (shot) => {
       if (S3) S3.dispose();
-      S3 = SOLAR3D.create(THREE, { shot, live: true, shadowMap: small ? 1024 : 2048, hour: +hr.value });
+      S3 = SOLAR3D.create(THREE, { shot, live: true, shadowMap: small ? 1024 : 2048, hour: hr ? +hr.value : 10.5 });
       S3.setupEnv(renderer);
-      base = { az: S3.view.az, el: S3.view.el }; az = base.az; el = base.el;
-      HS = S3.hotspots.filter((h) => EQ[h.key]);
-      dots.innerHTML = HS.map((h, i) => `<button type="button" class="h3-dot" data-i="${i}" aria-label="${esc(EQ[h.key].t)}"><i></i><span>${esc(EQ[h.key].t)}</span></button>`).join("");
+      base = { az: S3.view.az, el: S3.view.el }; az = base.az; el = base.el; zoom = zoomGoal = 1; tgt.copy(S3.center); tgtGoal.copy(S3.center);
+      HS = S3.hotspots.filter((h) => h.t || EQ[h.key]);
+      dots.innerHTML = HS.map((h, i) => `<button type="button" class="h3-dot" data-i="${i}" aria-label="${esc(info(h).t)}"><i></i><span>${esc(info(h).t)}</span></button>`).join("");
       tip.hidden = true; size(); sun();
     };
-    dots.addEventListener("click", (e) => { const b = e.target.closest(".h3-dot"); if (b) { e.stopPropagation(); showTip(+b.dataset.i); idle = -240; } });
+    dots.addEventListener("click", (e) => { const b = e.target.closest(".h3-dot"); if (!b) return; e.stopPropagation(); const i = +b.dataset.i; showTip(i); tgtGoal.copy(HS[i].pos); zoomGoal = clampZ(Math.max(zoomGoal, 3.2)); idle = -1e9; });
     const placeDots = () => {
       const r = st.getBoundingClientRect();
-      $$(".h3-dot", dots).forEach((d, i) => { if (!HS[i]) return; v.copy(HS[i].pos).project(S3.camera); const on = v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1; d.style.transform = `translate(${((v.x + 1) / 2 * r.width).toFixed(1)}px, ${((1 - v.y) / 2 * r.height).toFixed(1)}px)`; d.classList.toggle("off", !on); });
+      $$(".h3-dot", dots).forEach((d, i) => { if (!HS[i]) return; v.copy(HS[i].pos).project(S3.camera); const on = v.z < 1 && Math.abs(v.x) < 0.97 && Math.abs(v.y) < 0.97; d.style.transform = `translate(${((v.x + 1) / 2 * r.width).toFixed(1)}px, ${((1 - v.y) / 2 * r.height).toFixed(1)}px)`; d.classList.toggle("off", !on); });
     };
-    st.addEventListener("pointerdown", (e) => { if (e.target.closest(".h3-dot")) return; dragging = true; lastX = e.clientX; lastY = e.clientY; st.setPointerCapture(e.pointerId); st.classList.add("drag"); $("#h3-hint", root)?.classList.add("gone"); });
-    st.addEventListener("pointermove", (e) => { if (!dragging) return; az -= (e.clientX - lastX) * 0.35; el = Math.max(8, Math.min(62, el + (e.clientY - lastY) * 0.25)); lastX = e.clientX; lastY = e.clientY; idle = -300; dirty = true; });
-    const up = () => { dragging = false; st.classList.remove("drag"); };
+    const setFull = (on) => {
+      if (on === !!ph) return;
+      if (on) { ph = document.createComment("3d"); fullEl.parentNode.insertBefore(ph, fullEl); document.body.appendChild(fullEl); fullEl.classList.add("full3d"); document.documentElement.classList.add("full3d-on"); }
+      else { if (ph.parentNode) ph.parentNode.insertBefore(fullEl, ph); else fullEl.remove(); ph.remove(); ph = null; fullEl.classList.remove("full3d"); document.documentElement.classList.remove("full3d-on"); }
+      const fb = $('[data-z="full"]', zb); fb.innerHTML = on ? Z_IC.close : Z_IC.full; fb.title = on ? "닫기 (Esc)" : "크게 보기"; fb.setAttribute("aria-label", fb.title);
+      size();
+    };
+    zb.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; const z = b.dataset.z; hint.classList.add("gone");
+      if (z === "in") { zoomGoal = clampZ(zoomGoal * 1.5); idle = -1e9; } else if (z === "out") { zoomGoal = clampZ(zoomGoal / 1.5); if (zoomGoal <= 1.02) home(); } else if (z === "reset") home(); else setFull(!ph); });
+    // 포인터: 한 손가락 회전, 두 손가락 확대
+    const pts = new Map(); let pinch0 = 0, zoom0 = 1;
+    const pd = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+    st.addEventListener("pointerdown", (e) => { if (e.target.closest("button")) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { st.setPointerCapture(e.pointerId); } catch (er) { /* 없음 */ } armed = true; st.classList.add("drag"); hint.classList.add("gone"); if (pts.size === 2) { pinch0 = pd(); zoom0 = zoomGoal; } });
+    st.addEventListener("pointermove", (e) => { const p = pts.get(e.pointerId); if (!p) return;
+      if (pts.size === 1) { const k = 1 / Math.sqrt(zoom); az -= (e.clientX - p.x) * 0.35 * k; el = Math.max(6, Math.min(80, el + (e.clientY - p.y) * 0.25 * k)); idle = Math.min(idle, -300); dirty = true; }
+      p.x = e.clientX; p.y = e.clientY;
+      if (pts.size === 2 && pinch0 > 0) { zoomGoal = clampZ(zoom0 * pd() / pinch0); idle = -1e9; } });
+    const up = (e) => { pts.delete(e.pointerId); if (!pts.size) st.classList.remove("drag"); pinch0 = 0; };
     st.addEventListener("pointerup", up); st.addEventListener("pointercancel", up);
-    hr.addEventListener("input", () => { sun(); idle = -300; });
+    st.addEventListener("pointerleave", () => { if (!pts.size) armed = false; });
+    st.addEventListener("wheel", (e) => { if (!(armed || ph || e.ctrlKey)) return; e.preventDefault(); zoomGoal = clampZ(zoomGoal * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0016))); if (zoomGoal <= 1.02 && e.deltaY > 0 && tgtGoal.distanceTo(S3.center) > 0.01) tgtGoal.copy(S3.center); idle = -1e9; hint.classList.add("gone"); }, { passive: false });
+    st.addEventListener("dblclick", (e) => { if (e.target.closest("button") || !S3) return; const r = st.getBoundingClientRect(); const p = S3.pick((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height * 2 - 1)); if (p) { tgtGoal.copy(p); zoomGoal = clampZ(Math.max(zoomGoal * 1.8, 2.4)); idle = -1e9; } });
+    const onKey = (e) => { if (e.key === "Escape" && ph) setFull(false); };
+    document.addEventListener("keydown", onKey);
+    if (hr) hr.addEventListener("input", () => { sun(); idle = Math.min(idle, -300); });
     if (sw) sw.addEventListener("click", (e) => {
       const b = e.target.closest("button"); if (!b || b.getAttribute("aria-pressed") === "true") return;
       $$("button", sw).forEach((x) => x.setAttribute("aria-pressed", x === b)); st.classList.add("switching");
@@ -1073,13 +1111,20 @@
     const loop = () => {
       raf = 0; if (!visible || document.hidden || !st.isConnected) return;
       t++; idle++;
-      if (!dragging && idle > 0 && !reduceMotion) { const target = base.az + Math.sin(t / 420) * 24; az += (target - az) * 0.02; el += (base.el - el) * 0.02; dirty = true; }
-      if (dirty && S3) { S3.orbit(az, el, aspect, dist); renderer.render(S3.scene, S3.camera); placeDots(); dirty = false; if (first) { first = false; st.classList.add("on3d"); } }
+      if (Math.abs(zoomGoal - zoom) > 0.002 || tgt.distanceToSquared(tgtGoal) > 1e-5) { zoom += (zoomGoal - zoom) * 0.16; tgt.lerp(tgtGoal, 0.16); dirty = true; }
+      if (!pts.size && idle > 0 && !reduceMotion && !ph && zoomGoal === 1) { const target = base.az + Math.sin(t / 420) * 24; az += (target - az) * 0.02; el += (base.el - el) * 0.02; dirty = true; }
+      if (dirty && S3) { S3.orbit(az, el, aspect, dist / zoom, tgt); renderer.render(S3.scene, S3.camera); placeDots(); dirty = false; st.classList.toggle("zoomed", zoomGoal > 1.05); if (first) { first = false; st.classList.add("on3d"); } }
       raf = requestAnimationFrame(loop);
     };
-    document.addEventListener("visibilitychange", () => { if (!document.hidden && visible && !raf) loop(); });
-    load("hero"); loop();
-    cleanup.push(() => { cancelAnimationFrame(raf); raf = 0; visible = false; ro.disconnect(); io.disconnect(); if (S3) S3.dispose(); renderer.dispose(); renderer.forceContextLoss(); });
+    const onVis = () => { if (!document.hidden && visible && !raf) loop(); };
+    document.addEventListener("visibilitychange", onVis);
+    load(cfg.shot || "hero"); loop();
+    const destroy = () => { cancelAnimationFrame(raf); raf = 0; visible = false; ro.disconnect(); io.disconnect(); document.removeEventListener("keydown", onKey); document.removeEventListener("visibilitychange", onVis); if (ph) { fullEl.remove(); ph = null; document.documentElement.classList.remove("full3d-on"); } if (S3) S3.dispose(); renderer.dispose(); renderer.forceContextLoss(); };
+    cleanup.push(destroy);
+    return { load, destroy };
+  }
+  function hero3d(root) {
+    return viewer3d({ stage: $("#h3", root), fullEl: $(".h3-col", root), shot: "hero", hr: $("#h3-hr", root), tEl: $("#h3-time", root), outEl: $("#h3-out", root), sw: $("#h3-sw", root) });
   }
   /* 장 · 파트 배너용 3D 그림 */
   const CH_ART = { 1: "hero", 2: "office", 3: "doc", 4: "step3", 5: "safety", 6: "survey", 7: "hero", 8: "step2", 9: "step6", 10: "doc", 11: "doc-contract", 12: "survey", 13: "doc-design", 14: "doc-permit", 15: "module", 16: "step3", 17: "safety", 18: "step6", 19: "step5", 20: "monitor", 21: "money", 22: "doc-contract", 23: "office", 24: "rpr", 25: "board", 26: "monitor", 27: "money", 28: "doc", 29: "hero", 30: "structure", 31: "doc-design", 32: "module" };
@@ -1089,49 +1134,49 @@
      금액: 100kW 안팎 · 계통연계 포함 · 부지비 제외. 업체 공개가 · 매체 · 연구 자료의 범위이며 견적 전 참고용.
      발전 지수: 남향 30° 경사 = 100 으로 본 대략값 (경사 · 방위 손실만 반영). */
   const METHODS = [
-    { k: "roof", img: "hero", name: "공장 · 창고 지붕", short: "지붕", sub: "골강판 지붕 위에 레일을 고정하고 모듈을 얹습니다", tag: "2026 군산 현장 방식",
+    { k: "roof", parts: ["모듈 · 레일 (지붕 고정)", "인버터 (외벽)", "케이블 트레이", "수배전반 · 역전력계전기", "모니터링", "안전난간 · 사다리"], img: "hero", name: "공장 · 창고 지붕", short: "지붕", sub: "골강판 지붕 위에 레일을 고정하고 모듈을 얹습니다", tag: "2026 군산 현장 방식",
       cost: [130, 165], rep: 142, gen: 95, area: "약 4.7m²/kW", site: "기존 지붕 (부지비 없음)",
       fit: "지붕이 넓고 낮에 전기를 많이 쓰는 공장 · 물류창고",
       pros: ["따로 땅이 필요 없고 공사가 빠르다", "공장이 바로 쓰는 자가소비에 가장 잘 맞는다", "건물 태양광 정부 지원 대상"],
       cons: ["지붕 상태(노후 · 석면 · 하중)에 따라 보강비가 붙는다", "관통부 누수 · 벤추레이터 그늘 관리가 필요하다"],
       checks: ["지붕재 노후 · 석면 여부 (보강 · 철거비)", "구조검토: 모듈 · 구조물 하중을 지붕이 견디는지", "관통부 방수 처리와 사진 기록", "벤추레이터 · 채광창 그늘과 안전 (덮개 · 난간)", "건축물대장 위반건축물 여부 (인허가 거부 사유)"],
       permit: "구조검토서, 규모에 따라 전기공사계획 신고 · 공작물 축조신고", src: "업체 공개가 30kW 164만 · 100kW 142만 · 210kW 130만원/kW (후광일렉트릭, 2026)" },
-    { k: "flat", img: "flatroof", name: "평지붕 옥상", short: "옥상", sub: "콘크리트 옥상에 경사 거치대를 세우고 무게 블록이나 앵커로 고정합니다",
+    { k: "flat", parts: ["모듈 · 경사 거치대", "무게 블록 기초", "인버터 (옥탑 벽)", "옥상 트레이 · 수직 덕트", "수배전반", "모니터링"], img: "flatroof", name: "평지붕 옥상", short: "옥상", sub: "콘크리트 옥상에 경사 거치대를 세우고 무게 블록이나 앵커로 고정합니다",
       cost: [150, 180], rep: 165, est: true, gen: 97, area: "약 7~9m²/kW (줄 사이 그림자 간격 포함)", site: "기존 옥상",
       fit: "사무동 · 상가 · 학교처럼 평평한 옥상이 있는 건물",
       pros: ["경사를 원하는 각도로 줄 수 있어 발전 효율이 좋다", "구멍을 내지 않는 무타공 방식을 고를 수 있다"],
       cons: ["경사 거치대 · 무게 블록 비용이 더 든다", "줄 사이를 띄워야 해 같은 면적에 들어가는 용량이 적다"],
       checks: ["슬래브 허용 하중 (무게 블록까지 포함해 구조검토)", "방수층 상태 · 방수 보증 범위 (설치 전 사진)", "모서리 · 가장자리 풍하중 (블록 무게 · 앵커 결정)", "동지 기준 줄 간격 (앞줄 그림자)", "실외기 · 물탱크 · 파라펫 그늘, 점검 통로 확보"],
       permit: "구조검토서, 옥상 위 구조물 높이에 따라 공작물 축조신고 확인", src: "지붕형 단가에 경사 거치대 · 무게 기초 · 방수 보호 비용을 더한 추정 (평지붕은 경사 프레임 추가 비용 발생: 후광일렉트릭)" },
-    { k: "carport", img: "carport", name: "주차장 (카포트)", short: "주차장", sub: "주차면 위에 기둥 · 보로 지붕을 세우고 그 위에 모듈을 얹습니다", tag: "공영주차장 설치 확대 중",
+    { k: "carport", parts: ["모듈 · 캐노피 (기둥 · 보)", "기초 · 충돌 보호대", "인버터 (기둥 부착)", "지중 관로 · 맨홀", "수배전반", "빗물받이 · 조명", "전기차 충전기 (선택)"], img: "carport", name: "주차장 (카포트)", short: "주차장", sub: "주차면 위에 기둥 · 보로 지붕을 세우고 그 위에 모듈을 얹습니다", tag: "공영주차장 설치 확대 중",
       cost: [150, 200], rep: 175, gen: 93, area: "주차 1면(2.5×5m)에 약 2.5~3kW", site: "기존 주차장 (주차면 유지)",
       fit: "넓은 직원 주차장이 있는 공장 · 공공기관 · 대형 매장",
       pros: ["주차장을 그대로 쓰면서 발전 (그늘 · 비 가림 효과)", "전기차 충전기와 함께 설치하기 좋다"],
       cons: ["기둥 · 보 · 기초를 새로 세워 지붕형보다 비싸다", "차량 충돌 · 적설 · 배수까지 설계해야 한다"],
       checks: ["주차면 수와 차로 폭 유지 (기둥 위치를 주차선에 맞춤)", "높이 2.5m 이상 · 화물차 · 소방차 진입 높이", "기초 자리 아래 배관 · 전선 매설물 조사", "적설 · 풍하중 구조계산, 차량 충돌 보호대", "빗물받이 · 홈통 배수, 조명 · CCTV 재설치", "건축물 해당 여부 · 공작물 축조신고를 지자체에 확인"],
       permit: "구조계산서, 지자체 건축 부서에 건축물 · 공작물 해당 여부 확인", src: "일반 지상형보다 설치비가 약 30~40% 높다는 분석 (솔라투데이) 을 지상형 단가에 적용" },
-    { k: "ground", img: "ground", name: "지상 (토지 · 노지)", short: "지상", sub: "땅에 기초를 박고 최적 경사로 여러 줄을 세웁니다",
+    { k: "ground", parts: ["모듈 · 지상 구조물", "스트링 인버터", "케이블 트렌치", "변압기 (고압 연계 시)", "수배전반 · 전기실", "울타리 · CCTV", "배수로 · 기상 센서"], img: "ground", name: "지상 (토지 · 노지)", short: "지상", sub: "땅에 기초를 박고 최적 경사로 여러 줄을 세웁니다",
       cost: [110, 140], rep: 125, gen: 100, area: "약 10~15m²/kW (줄 간격 포함)", site: "토지 매입 · 임대 별도",
       fit: "공장 옆 유휴 부지, 전기를 파는 발전사업",
       pros: ["kW당 공사비가 가장 낮은 편이다", "경사 · 방위를 최적으로 잡아 발전량이 많다"],
       cons: ["토지비 · 토목 · 인허가비가 따로 든다", "개발행위허가 · 이격거리 · 주민 민원 변수가 크다"],
       checks: ["토지 지목 (농지 · 임야면 전용 허가 · 부담금)", "지자체 이격거리 조례 (도로 · 주거지)", "토목: 절토 · 성토, 배수로, 옹벽, 침수 이력", "계통 접속 여유 (변전소 · 배전선로 용량)", "펜스 · 출입문 · 잡초 관리, 주민 설명"],
       permit: "개발행위허가, 농지 · 산지 전용, 발전사업허가(판매 시)", src: "100kW 약 1.1~1.4억원 (해줌 · 한국에너지가이드, 2026). 인허가 · 토목 · 울타리는 별도인 경우가 많음" },
-    { k: "agri", img: "agri", name: "영농형 (농지 위)", short: "영농형", sub: "농지 위에 높은 구조물을 세워 농사와 발전을 함께 합니다",
+    { k: "agri", parts: ["모듈 · 높은 구조물", "인버터 (기둥 부착)", "지중 관로", "수배전반", "모니터링"], img: "agri", name: "영농형 (농지 위)", short: "영농형", sub: "농지 위에 높은 구조물을 세워 농사와 발전을 함께 합니다",
       cost: [130, 160], rep: 145, gen: 100, area: "줄 간격을 넓혀 땅의 약 30% 안팎만 덮음", site: "농지 (농사 계속)",
       fit: "농가 · 농업법인, 공장 주변 농지",
       pros: ["농사를 계속하면서 추가 수입", "농촌 태양광 금융지원 대상이 될 수 있다"],
       cons: ["농기계가 지나가도록 구조물이 높아 공사비가 오른다", "농지 사용 기간 · 수확량 유지 조건이 붙는다"],
       checks: ["농지 타용도 일시사용 허가 기간과 갱신 조건", "하부 작물 수확량 유지 의무 · 확인 방법", "구조물 높이 · 기둥 간격 (농기계 통과)", "작물에 닿는 빛 (모듈 간격 · 배치)", "농민 참여 · 수익 배분 구조"],
       permit: "농지 타용도 일시사용 허가, 개발행위허가", src: "100~300kW 기준 kW당 130~160만원 (한국에너지가이드, 2026), 2021 연구 kW당 159만원 (한국신재생에너지학회지)" },
-    { k: "floating", img: "floating", name: "수상 (저수지 · 호수)", short: "수상", sub: "물 위에 부력체를 띄우고 그 위에 모듈을 얹은 뒤 줄로 고정합니다",
+    { k: "floating", parts: ["모듈 · 부력체", "계류 줄 · 앵커", "점검 통로 · 접속반", "수상 케이블", "육상 전기실 (인버터 · 변압기)", "수배전반"], img: "floating", name: "수상 (저수지 · 호수)", short: "수상", sub: "물 위에 부력체를 띄우고 그 위에 모듈을 얹은 뒤 줄로 고정합니다",
       cost: [160, 200], rep: 179, est: true, gen: 97, area: "수면 사용 (땅 불필요)", site: "수면 사용 허가 · 점용료",
       fit: "농업용 저수지 · 댐 · 정수장을 가진 공공기관 · 대규모 사업",
       pros: ["땅을 쓰지 않고, 물이 모듈을 식혀 효율이 조금 오를 수 있다", "주변에 가리는 것이 없어 그늘이 적다"],
       cons: ["부력체 · 계류 공사로 단가가 높다", "수위 변화 · 결빙 · 부식 관리가 필요하다"],
       checks: ["수면 관리자 사용 허가 (농어촌공사 · 지자체 등)", "수위 변동 · 결빙 · 태풍에 맞는 계류(앵커 · 줄) 설계", "수질 · 생태 영향 검토", "부력체 재질 인증 · 내구성", "점검용 보트 · 통로, 감전 안전"],
       permit: "공유수면 · 저수지 사용 허가, 환경 영향 검토", src: "2021 연구 3MW 기준 kW당 약 179만원 (한국환경공학회지). 최근 단가 자료가 적어 범위는 추정" },
-    { k: "wall", img: "wall", name: "건물 벽면 (BAPV · BIPV)", short: "벽면", sub: "남쪽 벽에 모듈을 붙이거나(BAPV), 외장재 자체를 모듈로 만듭니다(BIPV)",
+    { k: "wall", parts: ["모듈 · 브래킷", "인버터", "수직 트레이", "수배전반", "모니터링"], img: "wall", name: "건물 벽면 (BAPV · BIPV)", short: "벽면", sub: "남쪽 벽에 모듈을 붙이거나(BAPV), 외장재 자체를 모듈로 만듭니다(BIPV)",
       cost: [170, 180], rep: 175, gen: 65, area: "벽 면적 (남향 벽)", site: "기존 건물 벽",
       fit: "지붕이 좁은 고층 건물 · 사옥, 건물 디자인을 함께 바꾸는 신축",
       pros: ["지붕이 모자랄 때 추가 용량을 확보", "BIPV는 외장재를 대신해 건물 디자인 요소가 된다"],
@@ -1148,18 +1193,19 @@
     ["영농형 태양광 경제성 제고를 위한 정책 방안", "https://journalksnre.com/xml/40085/40085.pdf"],
     ["네이트 뉴스 — BIPV, 도심의 게임 체인저 (2026)", "https://m.news.nate.com/view/20260405n09027"],
   ];
-  function methodDetail(i) {
+  function methodBadges(i) {
     const m = METHODS[i];
-    return `<div class="md-pic"><img class="r3d" src="3d/${m.img}.webp" alt="${esc(m.name)} 3D 모델" decoding="async">
-        <div class="md-badges"><span><small>kW당 공사비</small><b>${m.cost[0]}~${m.cost[1]}<em>만원</em></b>${m.est ? `<i>추정</i>` : ""}</span><span><small>100kW 총액</small><b>${(m.cost[0] / 100).toFixed(1)}~${(m.cost[1] / 100).toFixed(1)}<em>억</em></b></span><span><small>발전 지수</small><b>${m.gen}</b></span></div></div>
-      <div class="md-body">
-        <div class="md-h">${m.tag ? `<span class="chip">${esc(m.tag)}</span>` : ""}<h3>${esc(m.name)}</h3><p>${esc(m.sub)}</p></div>
+    return `<span><small>kW당 공사비</small><b>${m.cost[0]}~${m.cost[1]}<em>만원</em></b>${m.est ? `<i>추정</i>` : ""}</span><span><small>100kW 총액</small><b>${(m.cost[0] / 100).toFixed(1)}~${(m.cost[1] / 100).toFixed(1)}<em>억</em></b></span><span><small>발전 지수</small><b>${m.gen}</b></span>`;
+  }
+  function methodBody(i) {
+    const m = METHODS[i];
+    return `<div class="md-h">${m.tag ? `<span class="chip">${esc(m.tag)}</span>` : ""}<h3>${esc(m.name)}</h3><p>${esc(m.sub)}</p></div>
         <dl class="md-kv"><dt>이런 곳에</dt><dd>${esc(m.fit)}</dd><dt>필요 면적</dt><dd>${esc(m.area)}</dd><dt>부지</dt><dd>${esc(m.site)}</dd><dt>인허가</dt><dd>${esc(m.permit)}</dd></dl>
+        <div class="md-parts"><b>구성 설비</b><div>${m.parts.map((x, k) => `<span><i>${k + 1}</i>${esc(x)}</span>`).join("")}</div></div>
         <div class="md-pc"><div><b class="ok">좋은 점</b><ul>${m.pros.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div><div><b class="ng">부담</b><ul>${m.cons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div></div>
         <div class="md-ck"><b>${icon("check", 16)} 이 방식이면 더 확인할 것</b><ol>${m.checks.map((x) => `<li>${esc(x)}</li>`).join("")}</ol></div>
         <p class="from md-src">금액 근거: ${esc(m.src)}</p>
-        <button type="button" class="btn primary md-go" data-m="${i}">이 방식으로 수익 계산 →</button>
-      </div>`;
+        <button type="button" class="btn primary md-go" data-m="${i}">이 방식으로 수익 계산 →</button>`;
   }
   function methodCompare() {
     const lo = 100, hi = 210, X = (v) => ((v - lo) / (hi - lo) * 100).toFixed(2) + "%";
