@@ -130,6 +130,12 @@ def main():
         for src in hidden:
             (out / src).unlink(missing_ok=True)
         print(f"공개용 빌드: 대외비 암호화, 공개 폴더에서 뺀 사진 {len(hidden)}장")
+        # 실시간 자료 함수 (/api/live) 와 Netlify 설정
+        (out / "netlify" / "functions").mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(SITE / "functions" / "live.mjs", out / "netlify" / "functions" / "live.mjs")
+        (out / "netlify.toml").write_text(
+            '[build]\n  publish = "."\n  command = ""\n\n[functions]\n  directory = "netlify/functions"\n\n'
+            '[[headers]]\n  for = "/*"\n  [headers.values]\n    X-Robots-Tag = "noindex, nofollow"\n', encoding="utf-8")
 
     font_src = SITE / "fonts" / "PretendardVariable.woff2"
     blob = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")

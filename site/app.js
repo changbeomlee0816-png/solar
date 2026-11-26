@@ -644,7 +644,7 @@
       </div>
     </div><span class="scroll-hint" aria-hidden="true"></span><svg class="wave" viewBox="0 0 1440 46" preserveAspectRatio="none" aria-hidden="true"><path d="M0 30 C 240 0 480 46 720 24 S 1200 8 1440 26 V46 H0z"/></svg></section>
 
-    <div class="wrap"><section class="sec reveal" style="margin-top:36px">
+    <div class="wrap"><div class="live-strip" id="live-strip" aria-label="실시간 요약"></div><section class="sec reveal" style="margin-top:36px">
       <div class="sec-head"><div><div class="eyebrow">백서 지도</div><h2>5개 파트, ${nCh}개 장</h2><p>처음이라면 PART 1부터, 현장 분석은 PART 2, 실무 체크리스트는 PART 3을 펼치세요.</p></div><a class="from" href="#wp">표지 · 개정 이력 →</a></div>
       <div class="map">${WP.parts.map((p, pi) => pi === 0 ? "" : `<a class="map-card" href="#${p.chapters[0].id}" style="--pc:${pcolor(pi)}">${PART_ART[pi] ? `<span class="mc-art">${R3(PART_ART[pi])}</span>` : ""}<span class="pn">${pi}</span><span class="pl">${esc(p.label)}</span><h3>${esc(p.title)}</h3>
         <ul>${p.chapters.slice(0, 6).map((c) => `<li class="${c.locked ? "lk" : ""}"><b>${typeof c.num === "number" ? c.num : "A"}</b><span>${esc(c.title.replace(/ — .*/, ""))}${c.locked ? " 🔒" : ""}</span></li>`).join("")}${p.chapters.length > 6 ? `<li><b>+</b><span>외 ${p.chapters.length - 6}개 장</span></li>` : ""}</ul></a>`).join("")}</div>
@@ -861,6 +861,7 @@
       b3.addEventListener("click", async () => { b3.disabled = true; b3.textContent = "3D 불러오는 중…"; mv = await viewer3d({ stage: $("#md3", root), shot: METHODS[cur].img }); if (mv) { pic.classList.add("is3d"); if (METHODS[cur].img !== "hero") mv.load(METHODS[cur].img); } else { b3.textContent = "3D를 불러오지 못했습니다"; } });
     }
     hero3d(root);
+    liveStrip(root);
     // 수익 시뮬레이터
     {
       const rowsN = numsT ? bodyRows(numsT) : [];
@@ -946,7 +947,7 @@
   function paletteItems(q) {
     const t = q.toLowerCase().trim(); const out = [];
     const hit = (s) => String(s || "").toLowerCase().includes(t);
-    const go = [["개요", "home"], ["백서 표지 · 개정 이력", "wp"], ["사례집", "cases"], ["이슈 레지스터", "cases-issues"], ["원가 분석", "cost"], ["현장 양식", "forms"], ["수익 시뮬레이터", "calc-go"], ["진행 체크리스트", "check-go"], ["자주 묻는 질문", "faq-go"]];
+    const go = [["개요", "home"], ["백서 표지 · 개정 이력", "wp"], ["사례집", "cases"], ["이슈 레지스터", "cases-issues"], ["원가 분석", "cost"], ["현장 양식", "forms"], ["수익 시뮬레이터", "calc-go"], ["진행 체크리스트", "check-go"], ["자주 묻는 질문", "faq-go"], ["실시간 (SMP · 날씨 · 뉴스)", "live"]];
     go.forEach(([n, h]) => { if (!t || hit(n)) out.push({ g: "바로가기", t: n, h }); });
     if (!t) return out.slice(0, 9);
     for (const { c } of CH) { if (hit(c.title)) out.push({ g: "백서 장", t: (typeof c.num === "number" ? c.num + "장 " : "") + c.title, h: c.id }); (c.sections || []).forEach((s) => { if (hit(s.text)) out.push({ g: "백서 절", t: s.text, h: s.id }); }); }
@@ -1222,6 +1223,137 @@
     </tbody></table></div>
     <p class="from mc-note">금액은 업체 공개가 · 매체 · 연구 자료의 범위로, 지붕 보강 · 토목 · 토지비 · 인허가비 포함 여부에 따라 크게 달라집니다. 실제 판단은 현장 실사와 3곳 이상 견적으로 합니다. 판매 사업(REC)이라면 방식별 REC 가중치도 다르니 현행 고시를 확인하세요.</p>
     <p class="from mc-src">출처: ${METHOD_SRC.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${esc(t)}</a>`).join(" · ")}</p>`;
+  }
+
+  /* ======================================================================
+     실시간 자료 (SMP · 군산 일사량 예보 · 뉴스) — /api/live (Netlify Function)
+     ====================================================================== */
+  const LIVE_URL = /netlify\.app$/.test(location.hostname) ? "/api/live" : "https://yuhost-solar-whitepaper.netlify.app/api/live";
+  const LIVE_PR = 0.8, LIVE_PRICE = 135; // 성능비 · 전기요금 단가 (가정, 수익 시뮬레이터와 같은 값)
+  let liveMem = null, liveP = null;
+  function liveCached() { if (liveMem) return liveMem; const c = store.get("live", null); return c && c.updated ? c : null; }
+  function liveFetch(force) {
+    const c = liveCached();
+    if (!force && c && Date.now() - Date.parse(c.fetched || c.updated) < 5 * 60e3) return Promise.resolve(c);
+    if (liveP) return liveP;
+    liveP = fetch(LIVE_URL + (force ? `?t=${Date.now()}` : ""), { cache: force ? "reload" : "default" })
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((j) => { j.fetched = new Date().toISOString(); liveMem = j; store.set("live", j); return j; })
+      .finally(() => { liveP = null; });
+    return liveP;
+  }
+  const ago = (iso) => { const m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60e3)); return m < 1 ? "방금" : m < 60 ? `${m}분 전` : m < 1440 ? `${Math.floor(m / 60)}시간 전` : `${Math.floor(m / 1440)}일 전`; };
+  const WMO = (c) => c == null ? ["–", "cloud"] : c === 0 ? ["맑음", "sun"] : c <= 2 ? ["구름 조금", "psun"] : c === 3 ? ["흐림", "cloud"] : c <= 48 ? ["안개", "cloud"] : c <= 57 ? ["이슬비", "rain"] : c <= 67 ? ["비", "rain"] : c <= 77 ? ["눈", "snow"] : c <= 82 ? ["소나기", "rain"] : c <= 86 ? ["눈", "snow"] : ["뇌우", "rain"];
+  const WX_IC = {
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="#f5a524" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5" fill="#ffd166"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>',
+    psun: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="9" r="3.6" fill="#ffd166" stroke="#f5a524"/><path d="M8 19h9a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6 1.6A2.7 2.7 0 0 0 8 19z" fill="#e8eef8" stroke="#8a96a8"/></svg>',
+    cloud: '<svg viewBox="0 0 24 24" fill="#dfe6f0" stroke="#8a96a8" stroke-width="2" stroke-linejoin="round"><path d="M7 19h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 2A3 3 0 0 0 7 19z"/></svg>',
+    rain: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M7 15h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 2A3 3 0 0 0 7 15z" fill="#dfe6f0" stroke="#8a96a8"/><path d="M9 18l-1 3M13 18l-1 3M17 18l-1 3" stroke="#3266ff"/></svg>',
+    snow: '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M7 15h10a4 4 0 0 0 0-8 6 6 0 0 0-11.5 2A3 3 0 0 0 7 15z" fill="#eef2f8" stroke="#8a96a8"/><path d="M9 19h.01M13 20h.01M17 19h.01" stroke="#6f97f5" stroke-width="3"/></svg>',
+  };
+  const kwpAll = () => REP.reduce((s, r) => s + (r.kwp || 0), 0);
+  function wxDays(w) {
+    if (!w || !w.hourly) return [];
+    const h = w.hourly, out = {};
+    h.time.forEach((t, i) => { const d = t.slice(0, 10); (out[d] = out[d] || { date: d, gti: 0, ghi: 0, cloud: [], temp: [], pop: [] }); out[d].gti += h.global_tilted_irradiance[i] || 0; out[d].ghi += h.shortwave_radiation[i] || 0; const hr = +t.slice(11, 13); if (hr >= 8 && hr <= 17) { out[d].cloud.push(h.cloud_cover[i]); out[d].pop.push(h.precipitation_probability ? h.precipitation_probability[i] : 0); } out[d].temp.push(h.temperature_2m[i]); });
+    return Object.values(out).map((d, k) => ({ ...d, kwh: d.gti / 1000, cloudAvg: d.cloud.reduce((a, b) => a + b, 0) / Math.max(1, d.cloud.length), popMax: Math.max(0, ...d.pop), code: w.daily && w.daily.weather_code ? w.daily.weather_code[k] : null, tmax: w.daily ? w.daily.temperature_2m_max[k] : null, tmin: w.daily ? w.daily.temperature_2m_min[k] : null }));
+  }
+  const dayName = (iso, k) => k === 0 ? "오늘" : k === 1 ? "내일" : k === 2 ? "모레" : iso.slice(5).replace("-", ".");
+  function smpToday(s) { const d = s && s.days; if (!d || !d.length) return null; const t = d[d.length - 1], y = d[d.length - 2]; return { t, y, week: d.reduce((a, x) => a + (x.avg || 0), 0) / d.length }; }
+
+  // 홈 상단 요약 띠
+  function liveStrip(root) {
+    const box = $("#live-strip", root); if (!box) return;
+    const paint = (j) => {
+      if (!box.isConnected) return;
+      const sm = smpToday(j.smp), days = wxDays(j.weather), td = days[0], cur = j.weather && j.weather.current, n = (j.news || [])[0];
+      const [wn, wi] = WMO(cur ? cur.weather_code : null);
+      box.innerHTML = `<a class="ls-card" href="#live"><span class="ls-k"><i class="ls-dot"></i>육지 SMP · 오늘 평균</span><b>${sm && sm.t.avg != null ? fmt(sm.t.avg, 1) : "–"}<small>원/kWh</small></b><em>${sm && sm.y && sm.t.avg != null ? `${sm.t.avg >= sm.y.avg ? "▲" : "▼"} 전일 ${fmt(Math.abs(sm.t.avg - sm.y.avg), 1)}` : "전력거래소"}</em></a>
+        <a class="ls-card" href="#live"><span class="ls-k">${WX_IC[wi]}군산 지금 · ${esc(wn)}</span><b>${cur ? fmt(cur.temp_2m ?? cur.temperature_2m, 1) : "–"}<small>℃</small></b><em>${td ? `오늘 일사량 ${fmt(td.kwh, 2)}kWh/m²` : "Open-Meteo"}</em></a>
+        <a class="ls-card" href="#live"><span class="ls-k">준공 ${REP.length}곳 오늘 예상 발전</span><b>${td ? fmt(kwpAll() * td.kwh * LIVE_PR, 0) : "–"}<small>kWh</small></b><em>${td ? `약 ${man(kwpAll() * td.kwh * LIVE_PR * LIVE_PRICE)}원 절감` : ""}</em></a>
+        <a class="ls-card ls-news" href="#live"><span class="ls-k">최신 뉴스 · ${n ? esc(n.source) : ""}</span><b class="ls-t">${n ? esc(n.title) : "–"}</b><em>${n ? ago(n.date) : ""} · 실시간 탭에서 더 보기 →</em></a>`;
+      box.classList.add("on");
+    };
+    const c = liveCached(); if (c) paint(c);
+    liveFetch().then(paint).catch(() => { if (!c) box.hidden = true; });
+  }
+
+  function smpChart(s) {
+    const d = s.days, today = d[d.length - 1], W = 900, H = 280, L = 44, R = 12, T = 14, B = 26;
+    const avgH = Array.from({ length: 24 }, (_, h) => { const v = d.slice(0, -1).map((x) => x.hourly[h]).filter((x) => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; });
+    const all = d.flatMap((x) => x.hourly).filter((x) => x != null), mx = Math.max(200, ...all), step = niceStep(mx / 4), top = Math.ceil(mx / step) * step;
+    const x = (h) => L + (W - L - R) * h / 23, y = (v) => T + (H - T - B) * (1 - v / top);
+    const line = (arr) => arr.map((v, h) => v == null ? null : `${x(h).toFixed(1)},${y(v).toFixed(1)}`).filter(Boolean).join(" ");
+    let g = `<rect x="${x(9)}" y="${T}" width="${x(16) - x(9)}" height="${H - T - B}" fill="var(--sun)" opacity=".08"/><text x="${(x(9) + x(16)) / 2}" y="${T + 12}" text-anchor="middle" class="val" style="fill:var(--sun);font-weight:700">태양광 발전 시간</text>`;
+    for (let v = 0; v <= top; v += step) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+    for (let h = 0; h < 24; h += 3) g += `<text x="${x(h)}" y="${H - 8}" text-anchor="middle">${h + 1}시</text>`;
+    d.slice(0, -1).forEach((dd) => { g += `<polyline points="${line(dd.hourly)}" fill="none" stroke="var(--ink-3)" stroke-width="1" opacity=".22"/>`; });
+    g += `<polyline points="${line(avgH)}" fill="none" stroke="var(--navy)" stroke-width="2" stroke-dasharray="5 4"/>`;
+    g += `<polyline class="sim-line" points="${line(today.hourly)}" fill="none" stroke="var(--sun)" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    return `<div class="sim-legend"><span><i style="background:var(--sun)"></i>오늘 (${esc(today.md)})</span><span><i style="background:var(--navy)"></i>지난 6일 평균</span><span><i style="background:var(--ink-3);opacity:.4"></i>지난 날짜별</span></div><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="시간대별 SMP">${g}</svg>`;
+  }
+  function wxChart(w) {
+    const h = w.hourly, n = h.time.length, W = 640, H = 220, L = 40, R = 40, T = 14, B = 30;
+    const mx = Math.max(800, ...h.global_tilted_irradiance.map((v) => v || 0)), top = Math.ceil(mx / 200) * 200;
+    const x = (i) => L + (W - L - R) * i / (n - 1), y = (v) => T + (H - T - B) * (1 - v / top), yc = (v) => T + (H - T - B) * (1 - v / 100);
+    const nowI = h.time.findIndex((t) => t.slice(0, 13) === new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 13));
+    let g = "";
+    for (let v = 0; v <= top; v += 200) g += `<line class="gl" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+    for (let v = 0; v <= 100; v += 50) g += `<text x="${W - R + 6}" y="${yc(v) + 4}">${v}%</text>`;
+    for (let k = 0; k < n / 24; k++) { g += `<line x1="${x(k * 24)}" x2="${x(k * 24)}" y1="${T}" y2="${H - B}" stroke="var(--line-2)"/><text x="${x(k * 24 + 12)}" y="${H - 9}" text-anchor="middle" style="font-weight:700">${dayName(h.time[k * 24], k)}</text>`; }
+    const pts = h.global_tilted_irradiance.map((v, i) => `${x(i).toFixed(1)},${y(v || 0).toFixed(1)}`).join(" ");
+    g += `<polygon points="${x(0)},${y(0)} ${pts} ${x(n - 1)},${y(0)}" fill="url(#gtiG)"/><polyline points="${pts}" fill="none" stroke="#f5a524" stroke-width="2.4"/>`;
+    g += `<polyline points="${h.cloud_cover.map((v, i) => `${x(i).toFixed(1)},${yc(v || 0).toFixed(1)}`).join(" ")}" fill="none" stroke="#8a96a8" stroke-width="1.6" stroke-dasharray="3 3"/>`;
+    if (nowI >= 0) g += `<line x1="${x(nowI)}" x2="${x(nowI)}" y1="${T}" y2="${H - B}" stroke="var(--bad)" stroke-width="1.5"/><text x="${x(nowI) + 4}" y="${T + 10}" style="fill:var(--bad);font-weight:800">지금</text>`;
+    return `<div class="sim-legend"><span><i style="background:#f5a524"></i>경사면 일사량 (W/m², 남향 10°)</span><span><i style="background:#8a96a8"></i>구름 양 (%)</span></div><svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="군산 3일 일사량 예보"><defs><linearGradient id="gtiG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5a524" stop-opacity=".45"/><stop offset="1" stop-color="#f5a524" stop-opacity=".02"/></linearGradient></defs>${g}</svg>`;
+  }
+
+  function renderLive(root) {
+    root.innerHTML = `<div class="wrap view">
+      <div class="page-banner live-banner reveal"><div class="eyebrow">실시간 · 자동 갱신</div><h1>태양광 실시간</h1>
+        <p>전력시장 가격(SMP), 군산 날씨 · 일사량 예보와 준공 현장 예상 발전량, 태양광 업계 · 정책 뉴스를 자동으로 모아 보여줍니다.</p>
+        <div class="chips"><span id="lv-upd">불러오는 중…</span><button type="button" class="btn" id="lv-ref">↻ 지금 새로 고침</button></div></div>
+      <div id="lv"></div></div>`;
+    const box = $("#lv", root), upd = $("#lv-upd", root);
+    const paint = (j) => {
+      if (!box.isConnected) return;
+      upd.innerHTML = `갱신 <b>${new Date(j.updated).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</b> (${ago(j.updated)}) · 10분마다 자동`;
+      const sm = smpToday(j.smp), days = wxDays(j.weather), cur = j.weather && j.weather.current;
+      const err = (k, what) => `<div class="lv-err">${esc(what)}를 지금 불러오지 못했습니다. 잠시 뒤 자동으로 다시 시도합니다.</div>`;
+      const zeroDays = sm ? j.smp.days.filter((d) => d.min === 0) : [];
+      const kwp = kwpAll(), nowKw = cur ? kwp * (j.weather.hourly.global_tilted_irradiance[j.weather.hourly.time.findIndex((t) => t.slice(0, 13) === cur.time.slice(0, 13))] || 0) / 1000 * LIVE_PR : 0;
+      box.innerHTML = `
+      <section class="sec reveal in"><div class="sec-head"><div><div class="eyebrow">전력시장</div><h2>육지 SMP (계통한계가격)</h2><p>발전사업자가 한전에 전기를 팔 때 받는 시간대별 가격입니다. 자가소비 현장은 SMP 대신 전기요금을 아끼지만, 판매형 · 상계거래 수익을 판단할 때 기준이 됩니다.</p></div>${j.smp ? `<a class="from" href="${j.smp.url}" target="_blank" rel="noopener">전력거래소 →</a>` : ""}</div>
+        ${sm ? `<div class="lv-kpi">
+          <div class="sk hl"><span>오늘 가중평균 (${esc(sm.t.md)})</span><b>${fmt(sm.t.avg, 2)}<small>원/kWh</small></b><em>${sm.y ? `전일 ${fmt(sm.y.avg, 2)} 대비 ${sm.t.avg >= sm.y.avg ? "▲" : "▼"} ${fmt(Math.abs(sm.t.avg - sm.y.avg), 2)}` : ""}</em></div>
+          <div class="sk"><span>오늘 최고 · 최저</span><b>${fmt(sm.t.max, 1)}<small> / ${fmt(sm.t.min, 1)}</small></b><em>원/kWh</em></div>
+          <div class="sk"><span>최근 7일 평균</span><b>${fmt(sm.week, 2)}<small>원/kWh</small></b><em>${esc(j.smp.days[0].md)} ~ ${esc(sm.t.md)}</em></div>
+          <div class="sk"><span>7일 일평균</span><div class="lv-bars">${j.smp.days.map((d) => `<i title="${esc(d.md)} ${d.avg}" style="height:${(d.avg / Math.max(...j.smp.days.map((x) => x.avg || 0)) * 100).toFixed(0)}%"><b>${esc(d.dow)}</b></i>`).join("")}</div></div>
+        </div>
+        <div class="card lv-chart">${smpChart(j.smp)}</div>
+        <p class="from lv-note">${zeroDays.length ? `최근 7일 중 ${zeroDays.map((d) => `${esc(d.md)}(${esc(d.dow)})`).join(" · ")}에는 SMP 최저값이 0원까지 내려갔습니다. 수요가 적은 휴일 낮에 태양광 발전이 몰리면 생기는 현상으로, 출력 제한 · 판매 수익에 영향을 줍니다. ` : ""}SMP는 전력거래소가 하루 단위로 공개하는 값입니다.</p>` : err("smp", "SMP")}
+      </section>
+      <section class="sec reveal in"><div class="sec-head"><div><div class="eyebrow">날씨 · 발전 예보</div><h2>군산 일사량 예보와 예상 발전량</h2><p>남향 10° 지붕 기준 경사면 일사량 예보로 준공 현장의 오늘 · 내일 · 모레 발전량을 미리 봅니다.</p></div>${j.weather ? `<a class="from" href="${j.weather.url}" target="_blank" rel="noopener">Open-Meteo →</a>` : ""}</div>
+        ${j.weather ? `<div class="lv-days">${days.map((d, k) => { const [wn, wi] = WMO(d.code); return `<div class="card lv-day ${k === 0 ? "on" : ""}"><div class="lv-dh"><span class="lv-ic">${WX_IC[wi]}</span><div><b>${dayName(d.date, k)}</b><small>${esc(d.date.slice(5).replace("-", "."))} · ${esc(wn)}</small></div><span class="lv-t">${d.tmax != null ? `${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°` : ""}</span></div>
+            <div class="lv-dv"><span>일사량</span><b>${fmt(d.kwh, 2)}<small>kWh/m²</small></b></div><div class="lv-dv"><span>낮 구름 · 강수확률</span><b>${Math.round(d.cloudAvg)}%<small> · ${Math.round(d.popMax)}%</small></b></div>
+            <div class="lv-dv big"><span>준공 ${REP.length}곳 예상 발전</span><b>${fmt(kwp * d.kwh * LIVE_PR, 0)}<small>kWh</small></b><em>전기요금 약 ${man(kwp * d.kwh * LIVE_PR * LIVE_PRICE)}원 절감</em></div></div>`; }).join("")}</div>
+          <div class="lv-grid"><div class="card lv-chart">${wxChart(j.weather)}</div>
+          <div class="card lv-sites"><h3>현장별 예상 (오늘)</h3>${cur ? `<p class="lv-now"><b>지금 ${fmt(nowKw, 0)}kW</b> 안팎 발전 중 (${REP.length}곳 합계, 기온 ${fmt(cur.temperature_2m, 1)}℃ · 구름 ${cur.cloud_cover}%)</p>` : ""}
+            <table class="lv-tbl"><thead><tr><th>현장</th><th>용량</th>${days.map((d, k) => `<th>${dayName(d.date, k)}</th>`).join("")}</tr></thead><tbody>${REP.map((r) => `<tr><td><a href="#case-${REP.indexOf(r) + 1}">${esc(norm(r.site))}</a></td><td class="num">${fmt(r.kwp, 1)}kWp</td>${days.map((d) => `<td class="num">${fmt(r.kwp * d.kwh * LIVE_PR, 0)}kWh</td>`).join("")}</tr>`).join("")}</tbody></table>
+            <p class="from">예상 발전량 = 용량 × 경사면 일사량 × 성능비 ${LIVE_PR} (가정). 실제 값은 모니터링으로 확인하고, 크게 벗어나면 20장(O&M) 점검 기준을 따릅니다.</p></div></div>` : err("wx", "날씨 예보")}
+      </section>
+      <section class="sec reveal in"><div class="sec-head"><div><div class="eyebrow">뉴스</div><h2>태양광 업계 · 정책 소식</h2><p>Google 뉴스에서 최근 기사를 자동으로 모읍니다. 제목을 누르면 원문으로 갑니다.</p></div></div>
+        <div class="lv-news">${[["news", "업계 뉴스 (7일)"], ["policy", "정책 · 지원사업 (14일)"]].map(([k, t]) => `<div class="card lv-nl"><h3>${t}</h3>${j[k] && j[k].length ? `<ol>${j[k].map((x) => `<li><a href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><span>${esc(x.source)} · ${ago(x.date)}</span></li>`).join("")}</ol>` : err(k, "뉴스")}</div>`).join("")}</div>
+        <p class="from lv-note">뉴스 제목과 링크만 보여주며, 내용 판단은 원문과 공고문으로 확인하세요. 출처: 전력거래소 · Open-Meteo · Google 뉴스.</p>
+      </section>`;
+      markScrollable(box);
+    };
+    const load = (force) => { $("#lv-ref", root).disabled = true; return liveFetch(force).then(paint).catch(() => { if (!liveCached()) box.innerHTML = `<div class="card lv-off"><h3>실시간 자료를 불러오지 못했습니다</h3><p>인터넷 연결을 확인하거나, 이 화면이 외부 연결을 막는 환경이면 <a href="https://yuhost-solar-whitepaper.netlify.app/#live" target="_blank" rel="noopener">공개 사이트의 실시간 탭</a>에서 보세요.</p></div>`; else toast("새 자료를 받지 못해 마지막으로 받은 자료를 보여줍니다"); }).finally(() => { const b = $("#lv-ref", root); if (b) b.disabled = false; }); };
+    const c = liveCached(); if (c) paint(c);
+    load(false);
+    $("#lv-ref", root).addEventListener("click", () => load(true));
+    const tm = setInterval(() => { if (!document.hidden) load(true); }, 10 * 60e3);
+    cleanup.push(() => clearInterval(tm));
   }
   function linkify(h) {
     // "PART 1(1~5장)", "7장", "12장, 13장" → 링크
@@ -2030,6 +2162,7 @@
     else if (/^case-\d+$/.test(h)) { tab = "cases"; renderCases(main, +h.split("-")[1]); }
     else if (h === "cost") { tab = "cost"; renderCost(main); }
     else if (h === "forms") { tab = "forms"; renderForms(main); }
+    else if (h === "live") { tab = "live"; renderLive(main); }
     else if (h === "wp") { tab = "wp"; renderWP(main, null); }
     else if (chById(h)) { tab = "wp"; renderWP(main, h); }
     else if (secToCh[h]) { tab = "wp"; renderWP(main, secToCh[h], h); }
@@ -2038,7 +2171,7 @@
     if (tab !== "wp" && !/^case-\d+$/.test(h) && h !== "cases-issues") window.scrollTo(0, 0);
     observe(main);
     markScrollable(main);
-    document.title = { home: "태양광 사업관리 백서", wp: "백서 · 태양광 사업관리", cases: "사례집 · 태양광 사업관리", cost: "원가 분석 · 태양광 사업관리", forms: "현장 양식 · 태양광 사업관리" }[tab];
+    document.title = { home: "태양광 사업관리 백서", wp: "백서 · 태양광 사업관리", cases: "사례집 · 태양광 사업관리", cost: "원가 분석 · 태양광 사업관리", forms: "현장 양식 · 태양광 사업관리", live: "실시간 · 태양광 사업관리" }[tab];
   }
   window.addEventListener("hashchange", route);
 

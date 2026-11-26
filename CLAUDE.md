@@ -4,7 +4,7 @@
 1. 공개 사이트 (Netlify): https://yuhost-solar-whitepaper.netlify.app — siteId `278ca3e2-5156-4d9a-bf4e-ca944be332ca`
    - 공개용 빌드(`WP_PASSWORD` 지정)만 올린다. 열람 암호는 사용자에게 받는다. 저장소 · 커밋 메시지 · 문서에 암호를 쓰지 않는다.
    - Netlify MCP `deploy-site`(siteId 위 값)가 알려주는 `npx -y @netlify/mcp@latest --site-id ... --proxy-path ...` 명령을 빌드 폴더 안에서 실행한다.
-   - 빌드 폴더에 `netlify.toml`(publish ".", command "", X-Robots-Tag noindex)을 넣는다.
+   - 공개용 빌드는 `netlify.toml`(publish ".", command "", 함수 폴더, X-Robots-Tag noindex)과 `netlify/functions/live.mjs`를 자동으로 넣는다.
    - 배포 후 curl로 200 확인, Playwright로 잠금 해제까지 확인한다.
 2. 사내 전체본 Artifact URL: https://claude.ai/artifact/LhNbDu4kexq28L5cVSEcsX (암호 없이 빌드한 것)
 - 항상 이 URL로 다시 배포한다 (Artifact publish 시 `url`에 위 주소를 넣는다. 새 Artifact를 만들지 않는다).
@@ -40,3 +40,9 @@
 - 설치 방식 장면(옥상 · 주차장 · 지상 · 영농형 · 수상 · 벽면)에는 인버터 · 수배전반 · 전주 등 설비와 설명 점(`hs(...)`)이 들어 있다. 실시간 3D는 `site/app.js`의 `viewer3d`(회전 · 확대 · 크게 보기)가 홈과 설치 방식 카드에서 함께 쓴다.
 - 홈 실시간 3D는 three.js를 jsDelivr(`three@0.160.0`)에서 불러온다. 못 불러오면 `3d/hero.webp` 정지 이미지가 그대로 보인다.
 - Artifact 배포 때 `files`에 `3d/*`도 넣는다.
+
+## 실시간 탭 (#live)
+- `site/functions/live.mjs`(Netlify Function, `/api/live`)가 전력거래소 육지 SMP, Open-Meteo 군산 일사량 예보, Google 뉴스 RSS(업계 · 정책)를 모아 JSON으로 준다. CDN에 15분 보관, 원본 하나가 실패하면 그 항목만 비운다.
+- 화면은 `site/app.js`의 `renderLive` · `liveStrip`(홈 요약 띠). 10분마다 다시 받고, 마지막 자료를 브라우저에 저장해 먼저 보여준다.
+- 로컬 확인: `node -e "import('./site/functions/live.mjs').then(async m => console.log(await m.collect()))"`
+- 전력거래소 화면 구조가 바뀌면 `getSmp()`의 표 읽기를 맞춘다. Artifact 본은 공개 사이트의 `/api/live`를 불러오고, 막히면 공개 사이트 링크를 보여준다.
