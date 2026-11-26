@@ -1,6 +1,6 @@
 // 실시간 태양광 자료 (Netlify Function, 경로 /api/live)
 // - 육지 SMP: 전력거래소 공개 화면 (최근 7일 · 시간대별)
-// - 군산 일사량 · 날씨 예보: Open-Meteo (경사면 일사량, 3일)
+// - 전국 20개 도시 일사량 · 날씨 예보: Open-Meteo (경사면 일사량, 3일)
 // - 뉴스: Google 뉴스 RSS (업계 · 정책/지원)
 // 응답은 CDN에 15분 보관하고, 원본이 실패하면 그 항목만 비워 보낸다.
 // 로컬 확인: node -e "import('./site/functions/live.mjs').then(async m => console.log(JSON.stringify(await m.collect()).slice(0, 400)))"
@@ -44,16 +44,39 @@ export async function getSmp() {
   return { unit: "원/kWh", days: days.map((d, k) => ({ ...d, hourly: hourly[k], max: stat.max[k] ?? null, min: stat.min[k] ?? null, avg: stat.avg[k] ?? null })), source: "전력거래소 육지 SMP", url: "https://new.kpx.or.kr/smpInland.es?mid=a10606080100&device=pc" };
 }
 
+// 전국 주요 도시 (gx, gy: 화면 격자 지도 위치)
+export const CITIES = [
+  ["인천", 37.456, 126.705, 0, 0], ["서울", 37.566, 126.978, 1, 0], ["춘천", 37.881, 127.730, 2, 0], ["강릉", 37.752, 128.876, 3, 0],
+  ["서산", 36.785, 126.450, 0, 1], ["수원", 37.263, 127.029, 1, 1], ["청주", 36.642, 127.489, 2, 1], ["안동", 36.568, 128.729, 3, 1],
+  ["군산", LAT, LON, 0, 2], ["대전", 36.351, 127.385, 1, 2], ["대구", 35.871, 128.601, 3, 2], ["포항", 36.019, 129.343, 4, 2],
+  ["전주", 35.825, 127.148, 1, 3], ["진주", 35.180, 128.108, 2, 3], ["창원", 35.228, 128.681, 3, 3], ["울산", 35.538, 129.311, 4, 3],
+  ["광주", 35.160, 126.852, 0, 4], ["부산", 35.180, 129.075, 4, 4], ["목포", 34.812, 126.392, 0, 5], ["제주", 33.499, 126.531, 1, 6],
+];
+
 export async function getWeather() {
   const q = new URLSearchParams({
-    latitude: LAT, longitude: LON, timezone: "Asia/Seoul", forecast_days: "3",
+    latitude: CITIES.map((c) => c[1]).join(","), longitude: CITIES.map((c) => c[2]).join(","), timezone: "Asia/Seoul", forecast_days: "3",
     hourly: "global_tilted_irradiance,shortwave_radiation,cloud_cover,temperature_2m,precipitation_probability",
     daily: "sunrise,sunset,weather_code,temperature_2m_max,temperature_2m_min",
     current: "temperature_2m,cloud_cover,weather_code,shortwave_radiation,wind_speed_10m",
     tilt: "10", azimuth: "0",
   });
-  const j = JSON.parse(await get(`https://api.open-meteo.com/v1/forecast?${q}`));
-  return { lat: LAT, lon: LON, place: "군산 국가산업단지", tilt: 10, current: j.current, hourly: j.hourly, daily: j.daily, source: "Open-Meteo 예보", url: "https://open-meteo.com/" };
+  let arr = JSON.parse(await get(`https://api.open-meteo.com/v1/forecast?${q}`, 15000));
+  if (!Array.isArray(arr)) arr = [arr];
+  const r1 = (v) => (v == null ? null : Math.round(v * 10) / 10);
+  const cities = CITIES.map(([name, lat, lon, gx, gy], i) => {
+    const j = arr[i] || {}, h = j.hourly || {};
+    return { name, lat, lon, gx, gy, current: j.current,
+      hourly: { gti: (h.global_tilted_irradiance || []).map(r1), ghi: (h.shortwave_radiation || []).map(r1), cloud: h.cloud_cover || [], temp: (h.temperature_2m || []).map(r1), pop: h.precipitation_probability || [] },
+      daily: j.daily };
+  });
+  const time = (arr[0] && arr[0].hourly && arr[0].hourly.time) || [];
+  const g = cities.find((c) => c.name === "군산");
+  // 군산(현장 위치)은 예전 형식으로도 내보낸다
+  return { place: "군산 국가산업단지", tilt: 10, time, cities,
+    current: g.current, daily: g.daily,
+    hourly: { time, global_tilted_irradiance: g.hourly.gti, shortwave_radiation: g.hourly.ghi, cloud_cover: g.hourly.cloud, temperature_2m: g.hourly.temp, precipitation_probability: g.hourly.pop },
+    source: "Open-Meteo 예보 (전국 20개 도시)", url: "https://open-meteo.com/" };
 }
 
 export async function getNews(query, n = 10) {

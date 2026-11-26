@@ -1311,10 +1311,11 @@
   function renderLive(root) {
     root.innerHTML = `<div class="wrap view">
       <div class="page-banner live-banner reveal"><div class="eyebrow">실시간 · 자동 갱신</div><h1>태양광 실시간</h1>
-        <p>전력시장 가격(SMP), 군산 날씨 · 일사량 예보와 준공 현장 예상 발전량, 태양광 업계 · 정책 뉴스를 자동으로 모아 보여줍니다.</p>
+        <p>전력시장 가격(SMP), 전국 20개 도시 날씨 · 일사량 예보와 예상 발전량, 태양광 업계 · 정책 뉴스를 자동으로 모아 보여줍니다.</p>
         <div class="chips"><span id="lv-upd">불러오는 중…</span><button type="button" class="btn" id="lv-ref">↻ 지금 새로 고침</button></div></div>
       <div id="lv"></div></div>`;
     const box = $("#lv", root), upd = $("#lv-upd", root);
+    let paintWx = () => {};
     const paint = (j) => {
       if (!box.isConnected) return;
       upd.innerHTML = `갱신 <b>${new Date(j.updated).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}</b> (${ago(j.updated)}) · 10분마다 자동`;
@@ -1333,20 +1334,59 @@
         <div class="card lv-chart">${smpChart(j.smp)}</div>
         <p class="from lv-note">${zeroDays.length ? `최근 7일 중 ${zeroDays.map((d) => `${esc(d.md)}(${esc(d.dow)})`).join(" · ")}에는 SMP 최저값이 0원까지 내려갔습니다. 수요가 적은 휴일 낮에 태양광 발전이 몰리면 생기는 현상으로, 출력 제한 · 판매 수익에 영향을 줍니다. ` : ""}SMP는 전력거래소가 하루 단위로 공개하는 값입니다.</p>` : err("smp", "SMP")}
       </section>
-      <section class="sec reveal in"><div class="sec-head"><div><div class="eyebrow">날씨 · 발전 예보</div><h2>군산 일사량 예보와 예상 발전량</h2><p>남향 10° 지붕 기준 경사면 일사량 예보로 준공 현장의 오늘 · 내일 · 모레 발전량을 미리 봅니다.</p></div>${j.weather ? `<a class="from" href="${j.weather.url}" target="_blank" rel="noopener">Open-Meteo →</a>` : ""}</div>
-        ${j.weather ? `<div class="lv-days">${days.map((d, k) => { const [wn, wi] = WMO(d.code); return `<div class="card lv-day ${k === 0 ? "on" : ""}"><div class="lv-dh"><span class="lv-ic">${WX_IC[wi]}</span><div><b>${dayName(d.date, k)}</b><small>${esc(d.date.slice(5).replace("-", "."))} · ${esc(wn)}</small></div><span class="lv-t">${d.tmax != null ? `${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°` : ""}</span></div>
-            <div class="lv-dv"><span>일사량</span><b>${fmt(d.kwh, 2)}<small>kWh/m²</small></b></div><div class="lv-dv"><span>낮 구름 · 강수확률</span><b>${Math.round(d.cloudAvg)}%<small> · ${Math.round(d.popMax)}%</small></b></div>
-            <div class="lv-dv big"><span>준공 ${REP.length}곳 예상 발전</span><b>${fmt(kwp * d.kwh * LIVE_PR, 0)}<small>kWh</small></b><em>전기요금 약 ${man(kwp * d.kwh * LIVE_PR * LIVE_PRICE)}원 절감</em></div></div>`; }).join("")}</div>
-          <div class="lv-grid"><div class="card lv-chart">${wxChart(j.weather)}</div>
-          <div class="card lv-sites"><h3>현장별 예상 (오늘)</h3>${cur ? `<p class="lv-now"><b>지금 ${fmt(nowKw, 0)}kW</b> 안팎 발전 중 (${REP.length}곳 합계, 기온 ${fmt(cur.temperature_2m, 1)}℃ · 구름 ${cur.cloud_cover}%)</p>` : ""}
-            <table class="lv-tbl"><thead><tr><th>현장</th><th>용량</th>${days.map((d, k) => `<th>${dayName(d.date, k)}</th>`).join("")}</tr></thead><tbody>${REP.map((r) => `<tr><td><a href="#case-${REP.indexOf(r) + 1}">${esc(norm(r.site))}</a></td><td class="num">${fmt(r.kwp, 1)}kWp</td>${days.map((d) => `<td class="num">${fmt(r.kwp * d.kwh * LIVE_PR, 0)}kWh</td>`).join("")}</tr>`).join("")}</tbody></table>
-            <p class="from">예상 발전량 = 용량 × 경사면 일사량 × 성능비 ${LIVE_PR} (가정). 실제 값은 모니터링으로 확인하고, 크게 벗어나면 20장(O&M) 점검 기준을 따릅니다.</p></div></div>` : err("wx", "날씨 예보")}
-      </section>
+      <section class="sec reveal in" id="lv-nat">${j.weather && j.weather.cities ? "" : err("wx", "날씨 예보")}</section>
+      <section class="sec reveal in" id="lv-wx"></section>
       <section class="sec reveal in"><div class="sec-head"><div><div class="eyebrow">뉴스</div><h2>태양광 업계 · 정책 소식</h2><p>Google 뉴스에서 최근 기사를 자동으로 모읍니다. 제목을 누르면 원문으로 갑니다.</p></div></div>
         <div class="lv-news">${[["news", "업계 뉴스 (7일)"], ["policy", "정책 · 지원사업 (14일)"]].map(([k, t]) => `<div class="card lv-nl"><h3>${t}</h3>${j[k] && j[k].length ? `<ol>${j[k].map((x) => `<li><a href="${esc(x.link)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a><span>${esc(x.source)} · ${ago(x.date)}</span></li>`).join("")}</ol>` : err(k, "뉴스")}</div>`).join("")}</div>
         <p class="from lv-note">뉴스 제목과 링크만 보여주며, 내용 판단은 원문과 공고문으로 확인하세요. 출처: 전력거래소 · Open-Meteo · Google 뉴스.</p>
       </section>`;
+      if (j.weather && j.weather.cities) paintWx(j);
       markScrollable(box);
+    };
+
+    // 전국 · 도시별 날씨
+    let wxDay = 0, wxCity = store.get("lv-city", "군산");
+    paintWx = (j) => {
+      const w = j.weather, cs = w.cities, nat = $("#lv-nat", root), det = $("#lv-wx", root); if (!nat || !det) return;
+      const cw = (c) => ({ hourly: { time: w.time, global_tilted_irradiance: c.hourly.gti, shortwave_radiation: c.hourly.ghi, cloud_cover: c.hourly.cloud, temperature_2m: c.hourly.temp, precipitation_probability: c.hourly.pop }, daily: c.daily, current: c.current });
+      const D = cs.map((c) => ({ c, days: wxDays(cw(c)) }));
+      const nDays = D[0].days.length, dd = D.map((x) => ({ c: x.c, d: x.days[Math.min(wxDay, nDays - 1)] })).filter((x) => x.d);
+      const vals = dd.map((x) => x.d.kwh), lo = Math.min(...vals), hi = Math.max(...vals), avg = vals.reduce((a2, b2) => a2 + b2, 0) / vals.length;
+      const col = (v) => { const t = hi - lo < 0.05 ? 0.5 : (v - lo) / (hi - lo); return `hsl(${(212 - 172 * t).toFixed(0)} ${(55 + 30 * t).toFixed(0)}% ${(60 - 8 * t).toFixed(0)}%)`; };
+      const best = dd.reduce((a2, b2) => (b2.d.kwh > a2.d.kwh ? b2 : a2)), worst = dd.reduce((a2, b2) => (b2.d.kwh < a2.d.kwh ? b2 : a2));
+      const sorted = [...dd].sort((a2, b2) => b2.d.kwh - a2.d.kwh);
+      const dayBtns = D[0].days.map((d, k) => `<button type="button" data-d="${k}" aria-pressed="${k === wxDay}">${dayName(d.date, k)} <small>${esc(d.date.slice(5).replace("-", "."))}</small></button>`).join("");
+      nat.innerHTML = `<div class="sec-head"><div><div class="eyebrow">전국 날씨 · 일사량</div><h2>전국 ${cs.length}개 도시 발전 여건</h2><p>도시별 하루 경사면 일사량(남향 10°)이 많을수록 같은 설비로 전기를 더 만듭니다. 칸을 누르면 아래에서 그 도시의 시간대별 예보와 예상 발전량을 봅니다.</p></div><a class="from" href="${w.url}" target="_blank" rel="noopener">Open-Meteo →</a></div>
+        <div class="seg lv-dseg" id="lv-dseg">${dayBtns}</div>
+        <div class="lv-nat">
+          <div class="card lv-map"><div class="lv-grid7">${dd.map(({ c, d }) => { const [wn, wi] = WMO(wxDay === 0 && c.current ? c.current.weather_code : d.code); const t = wxDay === 0 && c.current ? `${fmt(c.current.temperature_2m, 1)}°` : `${Math.round(d.tmax)}°/${Math.round(d.tmin)}°`;
+              return `<button type="button" class="lv-cell ${c.name === wxCity ? "on" : ""} ${c.name === "군산" ? "site" : ""}" data-c="${esc(c.name)}" style="grid-column:${c.gx + 1};grid-row:${c.gy + 1};--cc:${col(d.kwh)}" title="${esc(c.name)} · ${esc(wn)}"><span class="lv-cn">${esc(c.name)}</span><span class="lv-ci">${WX_IC[wi]}</span><b>${fmt(d.kwh, 2)}</b><small>${t}</small></button>`; }).join("")}
+              <div class="lv-legend" style="grid-column:3 / 6;grid-row:6 / 8"><span>일사량 kWh/m² · ${wxDay === 0 ? "기온은 지금" : "최고/최저 기온"}</span><i style="background:linear-gradient(90deg, ${col(lo)}, ${col((lo + hi) / 2)}, ${col(hi)})"></i><div><em>${fmt(lo, 2)}</em><em>${fmt(hi, 2)}</em></div><span class="lv-sitek"><i></i> 준공 현장 (군산)</span></div></div></div>
+          <div class="card lv-rank"><div class="lv-rk">
+              <div><span>전국 평균</span><b>${fmt(avg, 2)}<small>kWh/m²</small></b></div><div><span>가장 많은 곳</span><b>${esc(best.c.name)} <small>${fmt(best.d.kwh, 2)}</small></b></div><div><span>가장 적은 곳</span><b>${esc(worst.c.name)} <small>${fmt(worst.d.kwh, 2)}</small></b></div></div>
+            <ol class="lv-bars2">${sorted.map(({ c, d }, k) => `<li class="${c.name === wxCity ? "on" : ""}" data-c="${esc(c.name)}"><span>${k + 1}</span><b>${esc(c.name)}</b><i><em style="width:${(d.kwh / hi * 100).toFixed(1)}%;background:${col(d.kwh)}"></em></i><strong>${fmt(d.kwh, 2)}</strong><small>${fmt(100 * d.kwh * LIVE_PR, 0)}kWh</small></li>`).join("")}</ol>
+            <p class="from">오른쪽 값: 100kW 설비 하루 예상 발전량 (성능비 ${LIVE_PR} 가정)</p></div>
+        </div>`;
+      // 도시 상세
+      const cur = D.find((x) => x.c.name === wxCity) || D.find((x) => x.c.name === "군산"), c = cur.c, days = cur.days, cww = cw(c), isSite = c.name === "군산";
+      const cc = c.current, kwp = kwpAll();
+      const hi2 = cww.hourly.time.findIndex((t) => cc && t.slice(0, 13) === cc.time.slice(0, 13)), gNow = hi2 >= 0 ? cww.hourly.global_tilted_irradiance[hi2] || 0 : 0;
+      det.innerHTML = `<div class="sec-head"><div><div class="eyebrow">도시별 예보</div><h2>${esc(c.name)} 일사량 예보와 예상 발전량</h2><p>${isSite ? "준공 현장이 있는 군산 기준으로 현장별 오늘 · 내일 · 모레 발전량을 미리 봅니다." : "이 도시에 설비를 둔다고 가정한 100kW · 1MW 기준 예상 발전량입니다."}</p></div></div>
+        <div class="seg lv-cseg" id="lv-cseg">${cs.map((x) => `<button type="button" data-c="${esc(x.name)}" aria-pressed="${x.name === c.name}">${esc(x.name)}${x.name === "군산" ? " · 현장" : ""}</button>`).join("")}</div>
+        <div class="lv-days">${days.map((d, k) => { const [wn, wi] = WMO(d.code); const P = isSite ? kwp : 100; return `<div class="card lv-day ${k === wxDay ? "on" : ""}"><div class="lv-dh"><span class="lv-ic">${WX_IC[wi]}</span><div><b>${dayName(d.date, k)}</b><small>${esc(d.date.slice(5).replace("-", "."))} · ${esc(wn)}</small></div><span class="lv-t">${d.tmax != null ? `${Math.round(d.tmax)}° / ${Math.round(d.tmin)}°` : ""}</span></div>
+            <div class="lv-dv"><span>일사량</span><b>${fmt(d.kwh, 2)}<small>kWh/m²</small></b></div><div class="lv-dv"><span>낮 구름 · 강수확률</span><b>${Math.round(d.cloudAvg)}%<small> · ${Math.round(d.popMax)}%</small></b></div>
+            <div class="lv-dv big"><span>${isSite ? `준공 ${REP.length}곳 예상 발전` : "100kW 설비 예상 발전"}</span><b>${fmt(P * d.kwh * LIVE_PR, 0)}<small>kWh</small></b><em>전기요금 약 ${man(P * d.kwh * LIVE_PR * LIVE_PRICE)}원 절감</em></div></div>`; }).join("")}</div>
+        <div class="lv-grid"><div class="card lv-chart">${wxChart(cww)}</div>
+        <div class="card lv-sites">${isSite ? `<h3>현장별 예상</h3>${cc ? `<p class="lv-now"><b>지금 ${fmt(kwp * gNow / 1000 * LIVE_PR, 0)}kW</b> 안팎 발전 중 (${REP.length}곳 합계, 기온 ${fmt(cc.temperature_2m, 1)}℃ · 구름 ${cc.cloud_cover}%)</p>` : ""}
+            <table class="lv-tbl"><thead><tr><th>현장</th><th>용량</th>${days.map((d, k) => `<th>${dayName(d.date, k)}</th>`).join("")}</tr></thead><tbody>${REP.map((r, ri) => `<tr><td><a href="#case-${ri + 1}">${esc(norm(r.site))}</a></td><td class="num">${fmt(r.kwp, 1)}kWp</td>${days.map((d) => `<td class="num">${fmt(r.kwp * d.kwh * LIVE_PR, 0)}kWh</td>`).join("")}</tr>`).join("")}</tbody></table>`
+          : `<h3>규모별 예상</h3>${cc ? `<p class="lv-now">지금 기온 ${fmt(cc.temperature_2m, 1)}℃ · 구름 ${cc.cloud_cover}% · 100kW면 <b>${fmt(100 * gNow / 1000 * LIVE_PR, 0)}kW</b> 안팎 발전</p>` : ""}
+            <table class="lv-tbl"><thead><tr><th>설비</th>${days.map((d, k) => `<th>${dayName(d.date, k)}</th>`).join("")}</tr></thead><tbody>${[[100, "100kW"], [500, "500kW"], [1000, "1MW"]].map(([P, n]) => `<tr><td>${n}</td>${days.map((d) => `<td class="num">${fmt(P * d.kwh * LIVE_PR, 0)}kWh</td>`).join("")}</tr>`).join("")}</tbody></table>`}
+          <p class="from">예상 발전량 = 용량 × 경사면 일사량 × 성능비 ${LIVE_PR} (가정). 실제 값은 모니터링으로 확인합니다.</p></div></div>`;
+      $("#lv-dseg", nat).onclick = (e) => { const b2 = e.target.closest("button"); if (b2) { wxDay = +b2.dataset.d; paintWx(j); } };
+      const pickCity = (e) => { const b2 = e.target.closest("[data-c]"); if (!b2) return; wxCity = b2.dataset.c; store.set("lv-city", wxCity); paintWx(j); if (b2.closest("#lv-nat")) $("#lv-wx", root).scrollIntoView({ behavior: "smooth", block: "start" }); };
+      nat.onclick = (e) => { if (!e.target.closest("#lv-dseg")) pickCity(e); };
+      $("#lv-cseg", det).onclick = pickCity;
+      markScrollable(det);
     };
     const load = (force) => { $("#lv-ref", root).disabled = true; return liveFetch(force).then(paint).catch(() => { if (!liveCached()) box.innerHTML = `<div class="card lv-off"><h3>실시간 자료를 불러오지 못했습니다</h3><p>인터넷 연결을 확인하거나, 이 화면이 외부 연결을 막는 환경이면 <a href="https://yuhost-solar-whitepaper.netlify.app/#live" target="_blank" rel="noopener">공개 사이트의 실시간 탭</a>에서 보세요.</p></div>`; else toast("새 자료를 받지 못해 마지막으로 받은 자료를 보여줍니다"); }).finally(() => { const b = $("#lv-ref", root); if (b) b.disabled = false; }); };
     const c = liveCached(); if (c) paint(c);

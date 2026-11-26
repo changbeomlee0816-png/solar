@@ -42,7 +42,7 @@
 - Artifact 배포 때 `files`에 `3d/*`도 넣는다.
 
 ## 실시간 탭 (#live)
-- `site/functions/live.mjs`(Netlify Function, `/api/live`)가 전력거래소 육지 SMP, Open-Meteo 군산 일사량 예보, Google 뉴스 RSS(업계 · 정책)를 모아 JSON으로 준다. CDN에 15분 보관, 원본 하나가 실패하면 그 항목만 비운다.
+- `site/functions/live.mjs`(Netlify Function, `/api/live`)가 전력거래소 육지 SMP, Open-Meteo 전국 20개 도시 일사량 · 날씨 예보(군산 = 준공 현장), Google 뉴스 RSS(업계 · 정책)를 모아 JSON으로 준다. CDN에 15분 보관, 원본 하나가 실패하면 그 항목만 비운다.
 - 화면은 `site/app.js`의 `renderLive` · `liveStrip`(홈 요약 띠). 10분마다 다시 받고, 마지막 자료를 브라우저에 저장해 먼저 보여준다.
 - 로컬 확인: `node -e "import('./site/functions/live.mjs').then(async m => console.log(await m.collect()))"`
 - 전력거래소 화면 구조가 바뀌면 `getSmp()`의 표 읽기를 맞춘다. Artifact 본은 공개 사이트의 `/api/live`를 불러오고, 막히면 공개 사이트 링크를 보여준다.

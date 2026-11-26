@@ -1678,3 +1678,36 @@ html.full3d-on { overflow: hidden; }
 @media (max-width: 1000px) { .live-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ls-news { grid-column: 1 / -1; } .lv-kpi { grid-template-columns: 1fr 1fr; } .lv-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 760px) { .lv-days { grid-template-columns: minmax(0, 1fr); } .lv-news { grid-template-columns: minmax(0, 1fr); } .nav .tabs a { font-size: 10px !important; } }
 @media (max-width: 560px) { .live-strip { grid-template-columns: 1fr 1fr; } .ls-card > b { font-size: 21px; } }
+
+/* 전국 날씨 */
+.lv-dseg, .lv-cseg { margin-bottom: 12px; flex-wrap: wrap; }
+.lv-dseg small { font-weight: 600; opacity: .7; margin-left: 2px; }
+.lv-cseg button { font-size: 12.5px; }
+.lv-nat { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; }
+.lv-map { padding: 16px; border-radius: 22px; background: var(--studio); }
+.lv-grid7 { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: repeat(7, auto); gap: 7px; }
+.lv-cell { display: grid; justify-items: center; gap: 1px; padding: 8px 4px 7px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--cc) 60%, transparent); background: color-mix(in srgb, var(--cc) 30%, var(--paper)); color: var(--ink); cursor: pointer; font: inherit; transition: transform .2s, box-shadow .2s; min-width: 0; position: relative; }
+.lv-cell:hover { transform: translateY(-2px); box-shadow: var(--depth-hover); }
+.lv-cell.on { outline: 3px solid var(--ink); outline-offset: 1px; }
+.lv-cell.site::after { content: ""; position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); box-shadow: 0 0 0 2px var(--paper); }
+.lv-cn { font-size: 12.5px; font-weight: 800; }
+.lv-ci svg { width: 26px; height: 26px; display: block; }
+.lv-cell b { font-size: 16px; font-weight: 850; letter-spacing: -0.03em; line-height: 1.1; }
+.lv-cell small { font-size: 11px; color: var(--ink-2); font-weight: 600; }
+.lv-legend { align-self: end; display: grid; gap: 4px; padding: 8px; font-size: 11.5px; color: var(--ink-3); }
+.lv-legend > i { height: 10px; border-radius: 5px; display: block; }
+.lv-legend > div { display: flex; justify-content: space-between; } .lv-legend em { font-style: normal; font-weight: 700; color: var(--ink-2); }
+.lv-sitek { display: flex; align-items: center; gap: 5px; } .lv-sitek i { width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); display: inline-block; }
+.lv-rank { padding: 18px; border-radius: 22px; display: grid; gap: 12px; align-content: start; }
+.lv-rk { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.lv-rk > div { padding: 10px 12px; border-radius: 14px; background: var(--muted-soft); display: grid; gap: 2px; }
+.lv-rk span { font-size: 11.5px; color: var(--ink-3); font-weight: 700; } .lv-rk b { font-size: 18px; font-weight: 850; } .lv-rk b small { font-size: 12px; color: var(--ink-3); font-weight: 700; }
+.lv-bars2 { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.lv-bars2 li { display: grid; grid-template-columns: 22px 42px minmax(0, 1fr) 40px 62px; gap: 8px; align-items: center; font-size: 13px; padding: 3px 6px; border-radius: 8px; cursor: pointer; }
+.lv-bars2 li:hover, .lv-bars2 li.on { background: var(--cell-soft); }
+.lv-bars2 li > span { font-size: 11.5px; font-weight: 800; color: var(--ink-3); text-align: center; }
+.lv-bars2 i { height: 10px; border-radius: 5px; background: var(--muted-soft); overflow: hidden; display: block; } .lv-bars2 i em { display: block; height: 100%; border-radius: 5px; }
+.lv-bars2 strong { text-align: right; font-weight: 800; } .lv-bars2 small { text-align: right; color: var(--ink-3); font-size: 12px; }
+@media (max-width: 1000px) { .lv-nat { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 560px) { .lv-grid7 { gap: 4px; } .lv-cell { padding: 6px 2px; border-radius: 10px; } .lv-cn { font-size: 11px; } .lv-ci svg { width: 20px; height: 20px; } .lv-cell b { font-size: 13px; } .lv-cell small { font-size: 9.5px; } .lv-rk b { font-size: 15px; } }
+.lv-dseg, .lv-cseg { display: flex; max-width: 100%; }
